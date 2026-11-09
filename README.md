@@ -21,7 +21,7 @@
 
 ## 🎓 Contexto Acadêmico e Motivação
 
-O **AVORA** (*Analisador Visual de Operações e Rastreamento de Árvores*) é um projeto acadêmico desenvolvido na **Universidade Federal de Pelotas (UFPel)** por **Filipe de Melo Pereira**, graduando do curso de **Ciência da Computação**.
+O **AVORA** (*Analisador Visual de Operações e Rastreamento de Árvores*) é um projeto pessoal, de viés acadêmico, desenvolvido por **Filipe de Melo Pereira**, graduando do curso de **Ciência da Computação**.
 
 ### Por que o AVORA foi criado?
 No estudo de **Algoritmos e Estruturas de Dados** utilizando a linguagem **C**, uma das maiores dificuldades enfrentadas pelos estudantes é a lacuna cognitiva entre o código escrito no editor e o estado real da memória *heap* durante a execução:
@@ -184,7 +184,7 @@ Avora/
 
 ---
 
-## 👨‍💻 Autor e Créditos Acadêmicos
+## 👨‍💻 Autor
 
 - **Autor:** **Filipe de Melo Pereira**
 - **Curso:** Ciência da Computação

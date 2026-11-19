@@ -1,0 +1,22 @@
+# Objetos compilados e binários locais
+src/*.o
+*.o
+aed_tree_debugger
+avora
+
+# Arquivos temporários do sandbox GDB/GCC
+/tmp/aed_sandbox.c
+/tmp/aed_sandbox_bin
+/tmp/aed_compile_err.txt
+
+# Pacotes gerados (.zip / dist)
+*.zip
+dist/
+build_release/
+
+# Arquivos de ambiente / IDE
+.directory
+.vscode/
+.idea/
+*.swp
+*~

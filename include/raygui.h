@@ -74,6 +74,7 @@ void GuiLoadStyleDark(void);
 int GuiPanel(Rectangle bounds, const char *text);
 int GuiLabel(Rectangle bounds, const char *text);
 int GuiButton(Rectangle bounds, const char *text);
+int GuiPrimaryButton(Rectangle bounds, const char *text);
 int GuiSliderBar(Rectangle bounds, const char *textLeft, const char *textRight, float *value, float minValue, float maxValue);
 int GuiSlider(Rectangle bounds, const char *textLeft, const char *textRight, float *value, float minValue, float maxValue);
 int GuiTextBox(Rectangle bounds, char *text, int textSize, bool editMode);
@@ -98,27 +99,28 @@ static Color GuiGetColor(unsigned int hexValue)
     return color;
 }
 
+/* Midnight Slate Visual Theme */
 void GuiLoadStyleDark(void)
 {
     for (int i = 0; i < 16; i++) {
-        guiStyle[i][BORDER_COLOR_NORMAL]   = 0x52525BFF;
-        guiStyle[i][BASE_COLOR_NORMAL]     = 0x222226FF;
-        guiStyle[i][TEXT_COLOR_NORMAL]     = 0xF4F4F5FF;
-        guiStyle[i][BORDER_COLOR_FOCUSED]  = 0xFAFAFAFF;
-        guiStyle[i][BASE_COLOR_FOCUSED]    = 0x38383EFF;
+        guiStyle[i][BORDER_COLOR_NORMAL]   = 0x2A3047FF;
+        guiStyle[i][BASE_COLOR_NORMAL]     = 0x1F2437FF;
+        guiStyle[i][TEXT_COLOR_NORMAL]     = 0xE2E8F0FF;
+        guiStyle[i][BORDER_COLOR_FOCUSED]  = 0x38BDF8FF;
+        guiStyle[i][BASE_COLOR_FOCUSED]    = 0x282E47FF;
         guiStyle[i][TEXT_COLOR_FOCUSED]    = 0xFFFFFFFF;
-        guiStyle[i][BORDER_COLOR_PRESSED]  = 0xFFFFFFFF;
-        guiStyle[i][BASE_COLOR_PRESSED]    = 0xE4E4E7FF;
-        guiStyle[i][TEXT_COLOR_PRESSED]    = 0x18181BFF;
-        guiStyle[i][BORDER_COLOR_DISABLED] = 0x2E2E33FF;
-        guiStyle[i][BASE_COLOR_DISABLED]   = 0x18181BFF;
-        guiStyle[i][TEXT_COLOR_DISABLED]   = 0x6E6E77FF;
+        guiStyle[i][BORDER_COLOR_PRESSED]  = 0x10B981FF;
+        guiStyle[i][BASE_COLOR_PRESSED]    = 0x10B981FF;
+        guiStyle[i][TEXT_COLOR_PRESSED]    = 0x0F111AFF;
+        guiStyle[i][BORDER_COLOR_DISABLED] = 0x1E2233FF;
+        guiStyle[i][BASE_COLOR_DISABLED]   = 0x131622FF;
+        guiStyle[i][TEXT_COLOR_DISABLED]   = 0x64748BFF;
         guiStyle[i][BORDER_WIDTH]          = 1;
-        guiStyle[i][TEXT_PADDING]          = 6;
+        guiStyle[i][TEXT_PADDING]          = 10;
         guiStyle[i][TEXT_SIZE]             = 15;
         guiStyle[i][TEXT_SPACING]          = 1;
-        guiStyle[i][LINE_COLOR]            = 0x38383EFF;
-        guiStyle[i][BACKGROUND_COLOR]      = 0x141416FF;
+        guiStyle[i][LINE_COLOR]            = 0x2A3047FF;
+        guiStyle[i][BACKGROUND_COLOR]      = 0x161925FF;
     }
     guiStyleLoaded = true;
 }
@@ -187,7 +189,7 @@ static void GuiDrawTextCentered(const char *text, Rectangle bounds, Color color,
         pos.x = bounds.x + (float)guiStyle[DEFAULT][TEXT_PADDING];
     } else {
         pos.x = bounds.x + (bounds.width - size.x) * 0.5f;
-        if (pos.x < bounds.x + 3.0f) pos.x = bounds.x + 3.0f;
+        if (pos.x < bounds.x + 4.0f) pos.x = bounds.x + 4.0f;
     }
     pos.y = bounds.y + (bounds.height - size.y) * 0.5f;
     DrawTextEx(guiFont, text, pos, fontSize, spacing, color);
@@ -203,7 +205,7 @@ int GuiPanel(Rectangle bounds, const char *text)
 
     if (text && text[0] != '\0') {
         Rectangle header = { bounds.x, bounds.y, bounds.width, 26.0f };
-        DrawRectangleRec(header, GuiGetColor(0x1E1E22FF));
+        DrawRectangleRec(header, GuiGetColor(0x1F2437FF));
         DrawLineEx(
             (Vector2){ bounds.x, bounds.y + 26.0f },
             (Vector2){ bounds.x + bounds.width, bounds.y + 26.0f },
@@ -211,7 +213,7 @@ int GuiPanel(Rectangle bounds, const char *text)
             border
         );
         BeginScissorMode((int)header.x + 2, (int)header.y, (int)header.width - 4, (int)header.height);
-        GuiDrawTextCentered(text, header, GuiGetColor(0xF4F4F5FF), true);
+        GuiDrawTextCentered(text, header, GuiGetColor(0xE2E8F0FF), true);
         EndScissorMode();
     }
     return 0;
@@ -248,8 +250,41 @@ int GuiButton(Rectangle bounds, const char *text)
     Color border = GuiGetColor((unsigned int)guiStyle[BUTTON][BORDER_COLOR_NORMAL + state * 3]);
     Color txtCol = GuiGetColor((unsigned int)guiStyle[BUTTON][TEXT_COLOR_NORMAL + state * 3]);
 
-    DrawRectangleRounded(bounds, 0.18f, 6, base);
-    DrawRectangleRoundedLinesEx(bounds, 0.18f, 6, 1.2f, border);
+    DrawRectangleRounded(bounds, 0.24f, 6, base);
+    DrawRectangleRoundedLinesEx(bounds, 0.24f, 6, 1.2f, border);
+    GuiDrawTextCentered(text, bounds, txtCol, false);
+
+    return pressed;
+}
+
+/* Primary Action Button (#10B981 Emerald Fill with #0F111A Dark Slate Text) */
+int GuiPrimaryButton(Rectangle bounds, const char *text)
+{
+    EnsureStyleLoaded();
+    GuiState state = guiState;
+    int pressed = 0;
+
+    if (state != STATE_DISABLED && !guiLocked) {
+        Vector2 mousePoint = GetMousePosition();
+        if (CheckCollisionPointRec(mousePoint, bounds)) {
+            if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+                state = STATE_PRESSED;
+            } else {
+                state = STATE_FOCUSED;
+            }
+            if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+                pressed = 1;
+            }
+        }
+    }
+
+    Color base   = (state == STATE_FOCUSED) ? GuiGetColor(0x34D399FF) :
+                   (state == STATE_PRESSED) ? GuiGetColor(0x059669FF) : GuiGetColor(0x10B981FF);
+    Color border = (state == STATE_FOCUSED) ? GuiGetColor(0x6EE7B7FF) : GuiGetColor(0x10B981FF);
+    Color txtCol = GuiGetColor(0x0F111AFF);
+
+    DrawRectangleRounded(bounds, 0.24f, 6, base);
+    DrawRectangleRoundedLinesEx(bounds, 0.24f, 6, 1.3f, border);
     GuiDrawTextCentered(text, bounds, txtCol, false);
 
     return pressed;
@@ -274,31 +309,31 @@ int GuiSliderBar(Rectangle bounds, const char *textLeft, const char *textRight, 
         }
     }
 
-    DrawRectangleRounded(bounds, 0.25f, 4, GuiGetColor(0x18181BFF));
+    DrawRectangleRounded(bounds, 0.35f, 4, GuiGetColor(0x0F111AFF));
     float pct = (*value - minValue) / (maxValue - minValue);
     if (pct < 0.0f) pct = 0.0f;
     if (pct > 1.0f) pct = 1.0f;
 
     Rectangle fill = { bounds.x + 2.0f, bounds.y + 2.0f, (bounds.width - 4.0f) * pct, bounds.height - 4.0f };
     Color fillCol = (state == STATE_FOCUSED || state == STATE_PRESSED)
-                    ? GuiGetColor(0xFAFAFAFF)
-                    : GuiGetColor(0xA1A1AAFF);
+                    ? GuiGetColor(0x38BDF8FF)
+                    : GuiGetColor(0x10B981FF);
     if (fill.width > 2.0f) {
-        DrawRectangleRounded(fill, 0.25f, 4, fillCol);
+        DrawRectangleRounded(fill, 0.35f, 4, fillCol);
     }
-    DrawRectangleRoundedLinesEx(bounds, 0.25f, 4, 1.0f, GuiGetColor((unsigned int)guiStyle[SLIDER][BORDER_COLOR_NORMAL + state * 3]));
+    DrawRectangleRoundedLinesEx(bounds, 0.35f, 4, 1.0f, GuiGetColor((unsigned int)guiStyle[SLIDER][BORDER_COLOR_NORMAL + state * 3]));
 
     if (textLeft && textLeft[0] != '\0') {
         float fs = (float)guiStyle[DEFAULT][TEXT_SIZE];
         Vector2 sz = MeasureTextEx(guiFont, textLeft, fs, 1.0f);
         Rectangle lr = { bounds.x - sz.x - 8.0f, bounds.y, sz.x + 4.0f, bounds.height };
-        GuiDrawTextCentered(textLeft, lr, GuiGetColor(0xE4E4E7FF), false);
+        GuiDrawTextCentered(textLeft, lr, GuiGetColor(0x64748BFF), false);
     }
     if (textRight && textRight[0] != '\0') {
         float fs = (float)guiStyle[DEFAULT][TEXT_SIZE];
         Vector2 sz = MeasureTextEx(guiFont, textRight, fs, 1.0f);
         Rectangle rr = { bounds.x + bounds.width + 6.0f, bounds.y, sz.x + 8.0f, bounds.height };
-        GuiDrawTextCentered(textRight, rr, GuiGetColor(0xF4F4F5FF), true);
+        GuiDrawTextCentered(textRight, rr, GuiGetColor(0xE2E8F0FF), true);
     }
     return 0;
 }
@@ -358,19 +393,19 @@ int GuiTextBox(Rectangle bounds, char *text, int textSize, bool editMode)
         }
     }
 
-    DrawRectangleRounded(bounds, 0.15f, 4, GuiGetColor(0x18181BFF));
-    Color border = editMode ? GuiGetColor(0xFAFAFAFF) : GuiGetColor((unsigned int)guiStyle[TEXTBOX][BORDER_COLOR_NORMAL + state * 3]);
-    DrawRectangleRoundedLinesEx(bounds, 0.15f, 4, editMode ? 1.6f : 1.0f, border);
+    DrawRectangleRounded(bounds, 0.20f, 4, GuiGetColor(0x1F2437FF));
+    Color border = editMode ? GuiGetColor(0x38BDF8FF) : GuiGetColor((unsigned int)guiStyle[TEXTBOX][BORDER_COLOR_NORMAL + state * 3]);
+    DrawRectangleRoundedLinesEx(bounds, 0.20f, 4, editMode ? 1.6f : 1.0f, border);
 
     if (bounds.width > 6.0f && bounds.height > 6.0f) {
         BeginScissorMode((int)bounds.x + 2, (int)bounds.y + 2, (int)bounds.width - 4, (int)bounds.height - 4);
-        GuiDrawTextCentered(text, bounds, GuiGetColor(0xF4F4F5FF), true);
+        GuiDrawTextCentered(text, bounds, GuiGetColor(0xE2E8F0FF), true);
         if (editMode && ((int)(GetTime() * 2.0) % 2 == 0)) {
             float fs = (float)guiStyle[DEFAULT][TEXT_SIZE];
             float sp = (float)guiStyle[DEFAULT][TEXT_SPACING];
             Vector2 sz = MeasureTextEx(guiFont, text, fs, sp);
             float cx = bounds.x + (float)guiStyle[DEFAULT][TEXT_PADDING] + sz.x + 2.0f;
-            DrawRectangle((int)cx, (int)(bounds.y + 5.0f), 2, (int)(bounds.height - 10.0f), GuiGetColor(0xFAFAFAFF));
+            DrawRectangle((int)cx, (int)(bounds.y + 5.0f), 2, (int)(bounds.height - 10.0f), GuiGetColor(0x38BDF8FF));
         }
         EndScissorMode();
     }
@@ -419,46 +454,48 @@ int GuiDropdownBox(Rectangle bounds, const char *text, int *active, bool editMod
         }
     }
 
-    DrawRectangleRounded(bounds, 0.15f, 4, hovered ? GuiGetColor(0x323238FF) : GuiGetColor(0x222226FF));
-    DrawRectangleRoundedLinesEx(bounds, 0.15f, 4, 1.2f, (hovered || editMode) ? GuiGetColor(0xFAFAFAFF) : GuiGetColor(0x52525BFF));
+    DrawRectangleRounded(bounds, 0.22f, 6, hovered ? GuiGetColor(0x282E47FF) : GuiGetColor(0x1F2437FF));
+    DrawRectangleRoundedLinesEx(bounds, 0.22f, 6, 1.2f, (hovered || editMode) ? GuiGetColor(0x38BDF8FF) : GuiGetColor(0x2A3047FF));
     if (itemCount > 0 && bounds.width > 28.0f) {
-        BeginScissorMode((int)bounds.x + 2, (int)bounds.y, (int)bounds.width - 26, (int)bounds.height);
-        GuiDrawTextCentered(items[current], bounds, GuiGetColor(0xF4F4F5FF), true);
+        BeginScissorMode((int)bounds.x + 2, (int)bounds.y, (int)bounds.width - 28, (int)bounds.height);
+        GuiDrawTextCentered(items[current], bounds, GuiGetColor(0xE2E8F0FF), true);
         EndScissorMode();
     }
     /* Dropdown arrow */
-    Vector2 v1 = { bounds.x + bounds.width - 18.0f, bounds.y + bounds.height * 0.40f };
-    Vector2 v2 = { bounds.x + bounds.width - 8.0f,  bounds.y + bounds.height * 0.40f };
-    Vector2 v3 = { bounds.x + bounds.width - 13.0f, bounds.y + bounds.height * 0.66f };
-    DrawTriangle(v1, v3, v2, GuiGetColor(0xF4F4F5FF));
+    Vector2 v1 = { bounds.x + bounds.width - 20.0f, bounds.y + bounds.height * 0.40f };
+    Vector2 v2 = { bounds.x + bounds.width - 10.0f, bounds.y + bounds.height * 0.40f };
+    Vector2 v3 = { bounds.x + bounds.width - 15.0f, bounds.y + bounds.height * 0.66f };
+    DrawTriangle(v1, v3, v2, GuiGetColor(0xE2E8F0FF));
 
     if (editMode && itemCount > 0) {
-        /* Draw drop shadow under menu */
         float item_h = 24.0f;
         Rectangle menuBg = {
             bounds.x,
-            bounds.y + bounds.height + 2.0f,
+            bounds.y + bounds.height + 4.0f,
             bounds.width,
-            (float)itemCount * (item_h + 1.0f) + 2.0f
+            (float)itemCount * (item_h + 1.0f) + 4.0f
         };
-        DrawRectangleRounded((Rectangle){ menuBg.x + 3.0f, menuBg.y + 4.0f, menuBg.width, menuBg.height },
-                             0.04f, 4, (Color){ 0, 0, 0, 155 });
-        DrawRectangleRec(menuBg, GuiGetColor(0x161618FF));
-        DrawRectangleLinesEx(menuBg, 1.2f, GuiGetColor(0xE4E4E7FF));
+        DrawRectangleRounded((Rectangle){ menuBg.x + 4.0f, menuBg.y + 5.0f, menuBg.width, menuBg.height },
+                             0.06f, 6, (Color){ 0, 0, 0, 175 });
+        DrawRectangleRounded(menuBg, 0.06f, 6, GuiGetColor(0x161925FF));
+        DrawRectangleRoundedLinesEx(menuBg, 0.06f, 6, 1.2f, GuiGetColor(0x38BDF8FF));
 
         for (int i = 0; i < itemCount; i++) {
             Rectangle itemRect = {
-                bounds.x + 2.0f,
-                bounds.y + bounds.height + 3.0f + (float)i * (item_h + 1.0f),
-                bounds.width - 4.0f,
+                bounds.x + 3.0f,
+                bounds.y + bounds.height + 6.0f + (float)i * (item_h + 1.0f),
+                bounds.width - 6.0f,
                 item_h
             };
             bool itemHover = CheckCollisionPointRec(mousePoint, itemRect);
-            Color bg = itemHover ? GuiGetColor(0x3F3F46FF)
-                                 : (i == current ? GuiGetColor(0x2E2E34FF) : GuiGetColor(0x1E1E22FF));
-            DrawRectangleRec(itemRect, bg);
-            BeginScissorMode((int)itemRect.x + 2, (int)itemRect.y, (int)itemRect.width - 4, (int)itemRect.height);
-            GuiDrawTextCentered(items[i], itemRect, itemHover ? GuiGetColor(0xFFFFFFFF) : GuiGetColor(0xE4E4E7FF), true);
+            Color bg = itemHover ? GuiGetColor(0x282E47FF)
+                                 : (i == current ? GuiGetColor(0x1F2437FF) : GuiGetColor(0x161925FF));
+            DrawRectangleRounded(itemRect, 0.15f, 4, bg);
+            if (i == current) {
+                DrawRectangle((int)itemRect.x, (int)itemRect.y + 3, 3, (int)itemRect.height - 6, GuiGetColor(0x10B981FF));
+            }
+            BeginScissorMode((int)itemRect.x + 4, (int)itemRect.y, (int)itemRect.width - 8, (int)itemRect.height);
+            GuiDrawTextCentered(items[i], itemRect, itemHover ? GuiGetColor(0xFFFFFFFF) : GuiGetColor(0xE2E8F0FF), true);
             EndScissorMode();
             if (itemHover && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
                 *active = i;

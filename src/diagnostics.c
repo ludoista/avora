@@ -9,14 +9,15 @@
  * Replaces smart quotes (‘ ’ “ ”) and em-dashes with ASCII equivalents
  * so they never render as '?' in Raylib's Latin-1 glyph atlas.
  */
-void sanitize_utf8_text(char *str)
+static void sanitize_utf8_internal(char *str, size_t max_len, bool preserve_newlines)
 {
     if (!str) return;
-    char out[2048];
+    char out[4096];
+    if (max_len > sizeof(out)) max_len = sizeof(out);
     size_t r = 0, w = 0;
     size_t len = strlen(str);
 
-    while (r < len && w < sizeof(out) - 2) {
+    while (r < len && w < max_len - 2) {
         unsigned char c0 = (unsigned char)str[r];
         unsigned char c1 = (r + 1 < len) ? (unsigned char)str[r + 1] : 0;
         unsigned char c2 = (r + 2 < len) ? (unsigned char)str[r + 2] : 0;
@@ -45,8 +46,21 @@ void sanitize_utf8_text(char *str)
             continue;
         }
 
-        if (c0 == '\n' || c0 == '\r' || c0 == '\t') {
-            out[w++] = ' ';
+        if (c0 == '\r') {
+            r++;
+            continue;
+        }
+        if (c0 == '\t') {
+            if (preserve_newlines && w + 4 < max_len - 2) {
+                out[w++] = ' '; out[w++] = ' '; out[w++] = ' '; out[w++] = ' ';
+            } else {
+                out[w++] = ' ';
+            }
+            r++;
+            continue;
+        }
+        if (c0 == '\n') {
+            out[w++] = preserve_newlines ? '\n' : ' ';
             r++;
             continue;
         }
@@ -56,6 +70,11 @@ void sanitize_utf8_text(char *str)
     }
     out[w] = '\0';
     memcpy(str, out, w + 1);
+}
+
+void sanitize_utf8_text(char *str)
+{
+    sanitize_utf8_internal(str, 2048, false);
 }
 
 void diagnostics_clear(DiagnosticReport *report)
@@ -72,8 +91,8 @@ void diagnostics_clear(DiagnosticReport *report)
     snprintf(
         report->pedagogical_explanation,
         sizeof(report->pedagogical_explanation),
-        "Escolha um template (Buscas, BST, AVL, Rubro-Negra, Árvore B ou LeetCode) ou escreva seu próprio código C. "
-        "Clique em [Compilar & Iniciar] para acompanhar os ponteiros ganharem vida!"
+        "Escolha um template (Buscas, BST, AVL, Rubro-Negra, Árvore B, Listas, Vetores ou LeetCode) ou escreva seu código C. "
+        "Clique em [Compilar & Iniciar] para inspecionar ponteiros, variáveis locais e pilha de chamadas!"
     );
 }
 
@@ -85,6 +104,9 @@ void diagnostics_set_compile_error(DiagnosticReport *report, const char *raw_gcc
     report->fault_line = 1;
 
     if (raw_gcc_err) {
+        snprintf(report->raw_compiler_log, sizeof(report->raw_compiler_log), "%s", raw_gcc_err);
+        sanitize_utf8_internal(report->raw_compiler_log, sizeof(report->raw_compiler_log), true);
+
         snprintf(report->raw_trace, sizeof(report->raw_trace), "%s", raw_gcc_err);
         sanitize_utf8_text(report->raw_trace);
     }
@@ -150,7 +172,7 @@ void diagnostics_set_compile_error(DiagnosticReport *report, const char *raw_gcc
         snprintf(
             report->pedagogical_explanation,
             sizeof(report->pedagogical_explanation),
-            "A struct TreeNode tem os campos 'val', 'left' e 'right'. "
+            "A struct TreeNode tem os campos 'val', 'left' e 'right' (e ListNode tem 'val', 'next', 'prev'). "
             "Na linha %d você tentou acessar um campo com outro nome. GCC: %.240s",
             report->fault_line,
             msg_start
@@ -184,10 +206,14 @@ void diagnostics_set_runtime_trap(
     report->secondary_addr = secondary_addr;
 
     if (raw_trace) {
+        snprintf(report->raw_compiler_log, sizeof(report->raw_compiler_log), "%s", raw_trace);
+        sanitize_utf8_internal(report->raw_compiler_log, sizeof(report->raw_compiler_log), true);
+
         snprintf(report->raw_trace, sizeof(report->raw_trace), "%s", raw_trace);
         sanitize_utf8_text(report->raw_trace);
     } else {
         report->raw_trace[0] = '\0';
+        report->raw_compiler_log[0] = '\0';
     }
 
     switch (type) {
@@ -201,8 +227,8 @@ void diagnostics_set_runtime_trap(
             snprintf(
                 report->pedagogical_explanation,
                 sizeof(report->pedagogical_explanation),
-                "O código tentou ler ou escrever em ->val, ->left ou ->right quando o ponteiro valia NULL (0x0). "
-                "Como proteger: sempre teste 'if (no == NULL) return ...;' como primeira linha da função recursiva ou antes de encadear ponteiros (ex: no->left->val)!"
+                "O código tentou ler ou escrever em um campo (->val, ->left, ->right ou ->next) quando o ponteiro valia NULL (0x0). "
+                "Como proteger: sempre teste 'if (no == NULL) return ...;' como primeira linha da função recursiva ou antes de encadear ponteiros!"
             );
             break;
 
@@ -218,7 +244,7 @@ void diagnostics_set_runtime_trap(
                 sizeof(report->pedagogical_explanation),
                 "Um ponteiro contém o endereço inválido 0x%" PRIx64 ". "
                 "Por que isso acontece? Em C, o malloc() apenas reserva bytes na Heap sem limpá-los! "
-                "Sempre inicialize 'novo->left = NULL;' e 'novo->right = NULL;' logo após alocar um nó.",
+                "Sempre inicialize 'novo->left = NULL;' e 'novo->right = NULL;' (ou 'novo->next = NULL;') logo após alocar um nó.",
                 fault_addr
             );
             break;
@@ -227,14 +253,14 @@ void diagnostics_set_runtime_trap(
             snprintf(
                 report->pedagogical_title,
                 sizeof(report->pedagogical_title),
-                "[CICLO DETECTADO] Referência Circular na Árvore (Linha %d)",
+                "[CICLO DETECTADO] Referência Circular na Estrutura (Linha %d)",
                 fault_line
             );
             snprintf(
                 report->pedagogical_explanation,
                 sizeof(report->pedagogical_explanation),
                 "O nó 0x%" PRIx64 " passou a apontar de volta para seu próprio ancestral (0x%" PRIx64 "), formando um loop fechado! "
-                "Em uma árvore válida, cada nó tem exatamente um caminho até a raiz. Verifique a ordem das atribuições na sua rotação ou inserção.",
+                "Verifique a ordem das atribuições de ponteiros na sua rotação, inversão ou inserção.",
                 fault_addr,
                 secondary_addr
             );
@@ -251,7 +277,7 @@ void diagnostics_set_runtime_trap(
                 report->pedagogical_explanation,
                 sizeof(report->pedagogical_explanation),
                 "O endereço 0x%" PRIx64 " já foi devolvido ao sistema com free(), mas ainda está sendo referenciado! "
-                "Dica: salve o ponteiro do filho em uma variável auxiliar (ex: temp = no->right) antes de chamar free(no), e retorne temp para atualizar o pai.",
+                "Dica: salve o ponteiro do próximo nó/filho em uma variável auxiliar antes de chamar free(no).",
                 fault_addr
             );
             break;
@@ -260,14 +286,14 @@ void diagnostics_set_runtime_trap(
             snprintf(
                 report->pedagogical_title,
                 sizeof(report->pedagogical_title),
-                "[ESTOURO DE HEAP] Acesso Fora dos Limites na Linha %d",
+                "[ESTOURO DE MEMÓRIA] Acesso Fora dos Limites na Linha %d",
                 fault_line
             );
             snprintf(
                 report->pedagogical_explanation,
                 sizeof(report->pedagogical_explanation),
-                "Foi detectada uma leitura ou escrita fora da região alocada para 0x%" PRIx64 ". "
-                "Certifique-se de alocar exatamente 'malloc(sizeof(struct TreeNode))' (e não sizeof(struct TreeNode*)).",
+                "Foi detectada uma leitura ou escrita fora da região alocada (0x%" PRIx64 "). "
+                "Verifique os índices do seu vetor (0 até N-1) e o tamanho passado ao malloc().",
                 fault_addr
             );
             break;
@@ -283,7 +309,7 @@ void diagnostics_set_runtime_trap(
                 report->pedagogical_explanation,
                 sizeof(report->pedagogical_explanation),
                 "A operação demorou mais de 1.5s sem avançar e foi interrompida com segurança. "
-                "Confira se o ponteiro do seu while() está avançando (ex: atual = atual->left) e se o caso base da recursão é alcançável!"
+                "Confira se a condição de parada do seu while()/for() ou o caso base da recursão é alcançável!"
             );
             break;
 
@@ -389,7 +415,7 @@ void diagnostics_inspect_snapshot(
             snapshot->current_executing_line,
             uninit_bad_addr,
             uninit_parent_addr,
-            "Execucao finalizada com ponteiros ainda nao inicializados (lixo de memoria) na arvore."
+            "Execucao finalizada com ponteiros ainda nao inicializados (lixo de memoria) na estrutura."
         );
         return;
     }
@@ -411,7 +437,7 @@ void diagnostics_inspect_snapshot(
         snprintf(
             report->pedagogical_title,
             sizeof(report->pedagogical_title),
-            "Dica do Blob — Linha %d (%s) | Nós na Heap: %d [main() Automático]",
+            "Depurando — Linha %d (%s) | Nós na Heap: %d [main() Automático]",
             snapshot->current_executing_line,
             snapshot->current_func[0] ? snapshot->current_func : "main",
             snapshot->node_count
@@ -420,11 +446,12 @@ void diagnostics_inspect_snapshot(
         snprintf(
             report->pedagogical_title,
             sizeof(report->pedagogical_title),
-            "Depurando Passo a Passo — Linha %d (%s) | Nós Ativos: %d | Árvores: %d",
+            "Depurando — Linha %d (%s) | Nós na Heap: %d | Vetores: %d | Pilha: %d frames",
             snapshot->current_executing_line,
             snapshot->current_func[0] ? snapshot->current_func : "main",
             snapshot->node_count,
-            snapshot->forest_root_count > 0 ? snapshot->forest_root_count : (snapshot->node_count > 0 ? 1 : 0)
+            snapshot->array_count,
+            snapshot->frame_count > 0 ? snapshot->frame_count : 1
         );
     }
 
@@ -461,7 +488,7 @@ void diagnostics_inspect_snapshot(
         snprintf(
             report->pedagogical_explanation,
             sizeof(report->pedagogical_explanation),
-            "Dica do Blob: Você colou apenas a função %s() sem um main(), então criei um main() automático usando BUILD_TREE "
+            "Dica do Blob: Você colou apenas a função %s() sem um main(), então criei um main() automático "
             "para você já sair testando! Ponteiros ativos: %s",
             report->auto_main_func[0] ? report->auto_main_func : "de solução",
             vars_summary[0] ? vars_summary : "nenhum"
@@ -477,7 +504,7 @@ void diagnostics_inspect_snapshot(
         snprintf(
             report->pedagogical_explanation,
             sizeof(report->pedagogical_explanation),
-            "Todos os ponteiros estão íntegros na memória. Clique em [Passo] ou ative o [Auto-Play] para acompanhar a execução!"
+            "Execução íntegra na memória. Avance com [Passo] ou [Auto-Play] e acompanhe o HUD de Variáveis & Call Stack!"
         );
     }
 }

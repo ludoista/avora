@@ -565,7 +565,7 @@ static const char *PRESET_10_BUG_CYCLE =
     "    return 0;\n"
     "}\n";
 
-/* 11. Bug Clássico: Segfault (Desreferenciar NULL) */
+/* 15. Bug Clássico: Segfault (Desreferenciar NULL) */
 static const char *PRESET_11_BUG_SEGFAULT =
     "// ARMADILHA 3: Acessar ->val ou ->left de um ponteiro NULL (Segmentation Fault)!\n"
     "\n"
@@ -578,6 +578,71 @@ static const char *PRESET_11_BUG_SEGFAULT =
     "    struct TreeNode* raiz = BUILD_TREE(\"[20, 10, 30]\");\n"
     "    int total = somarNosSemCasoBase(raiz);\n"
     "    (void)total;\n"
+    "    return 0;\n"
+    "}\n";
+
+/* 16. Lista Encadeada: Inversão de Ponteiros (LeetCode 206. Reverse Linked List) */
+static const char *PRESET_16_LINKED_LIST =
+    "// Lista Encadeada (struct ListNode): Inversão Iterativa de Ponteiros (next / prev)\n"
+    "// Use BUILD_LIST(\"[10, 20, 30, 40, 50]\") para montar listas encadeadas rapidamente!\n"
+    "\n"
+    "struct ListNode* inverterLista(struct ListNode* head) {\n"
+    "    struct ListNode* ant   = NULL;\n"
+    "    struct ListNode* atual = head;\n"
+    "    while (atual != NULL) {\n"
+    "        struct ListNode* prox = atual->next;\n"
+    "        atual->next = ant;\n"
+    "        atual->prev = NULL;\n"
+    "        ant   = atual;\n"
+    "        atual = prox;\n"
+    "    }\n"
+    "    return ant;\n"
+    "}\n"
+    "\n"
+    "int main(void) {\n"
+    "    struct ListNode* lista = BUILD_LIST(\"[10, 20, 30, 40, 50]\");\n"
+    "    printf(\"Iniciando inversao da lista encadeada...\\n\");\n"
+    "    lista = inverterLista(lista);\n"
+    "    printf(\"Lista invertida! Nova cabeca = %d\\n\", lista ? lista->val : -1);\n"
+    "    return 0;\n"
+    "}\n";
+
+/* 17. Vetores: Ordenação (Selection/Bubble) & Busca Binária com Índices Visuais */
+static const char *PRESET_17_ARRAY_SORT_SEARCH =
+    "// Vetores, Ordenação e Busca Binária — Visualização de Índices (i, j, esq, meio, dir)\n"
+    "// Acompanhe o vetor no Canvas, as variáveis no HUD e os logs no Terminal (stdout)!\n"
+    "\n"
+    "int buscaBinariaVetor(int* v, int n, int alvo) {\n"
+    "    int esq = 0;\n"
+    "    int dir = n - 1;\n"
+    "    while (esq <= dir) {\n"
+    "        int meio = esq + (dir - esq) / 2;\n"
+    "        printf(\"Buscando %d: esq=%d, meio=%d (v=%d), dir=%d\\n\", alvo, esq, meio, v[meio], dir);\n"
+    "        if (v[meio] == alvo) return meio;\n"
+    "        if (v[meio] < alvo)  esq = meio + 1;\n"
+    "        else                 dir = meio - 1;\n"
+    "    }\n"
+    "    return -1;\n"
+    "}\n"
+    "\n"
+    "int main(void) {\n"
+    "    int vetor[7] = { 42, 12, 8, 95, 23, 4, 60 };\n"
+    "    int n = 7;\n"
+    "    // 1. Ordena o vetor in-place (Selection Sort)\n"
+    "    for (int i = 0; i < n - 1; i++) {\n"
+    "        int min_idx = i;\n"
+    "        for (int j = i + 1; j < n; j++) {\n"
+    "            if (vetor[j] < vetor[min_idx]) min_idx = j;\n"
+    "        }\n"
+    "        if (min_idx != i) {\n"
+    "            int temp = vetor[i];\n"
+    "            vetor[i] = vetor[min_idx];\n"
+    "            vetor[min_idx] = temp;\n"
+    "        }\n"
+    "    }\n"
+    "    // 2. Executa Busca Binária pelo valor 42\n"
+    "    int pos = buscaBinariaVetor(vetor, n, 42);\n"
+    "    printf(\"Elemento 42 encontrado na posicao: %d\\n\", pos);\n"
     "    return 0;\n"
     "}\n";
 
@@ -652,6 +717,14 @@ void load_code_preset(DebuggerSession *session, int preset_index)
             snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_11_BUG_SEGFAULT);
             snprintf(session->test_input, sizeof(session->test_input), "[20, 10, 30]");
             break;
+        case 16:
+            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_16_LINKED_LIST);
+            snprintf(session->test_input, sizeof(session->test_input), "[10, 20, 30, 40, 50]");
+            break;
+        case 17:
+            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_17_ARRAY_SORT_SEARCH);
+            snprintf(session->test_input, sizeof(session->test_input), "[42, 12, 8, 95, 23, 4, 60]");
+            break;
         default:
             snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_1_LEETCODE_STD);
             snprintf(session->test_input, sizeof(session->test_input), "[4,1,6,0,2,5,7,null,null,null,3,null,null,null,8]");
@@ -724,6 +797,7 @@ void session_cleanup(DebuggerSession *session)
     unlink("/tmp/aed_sandbox.c");
     unlink("/tmp/aed_sandbox_bin");
     unlink("/tmp/aed_compile_err.txt");
+    unlink("/tmp/aed_program_stdout.txt");
 }
 
 /* ============================================================================
@@ -743,10 +817,22 @@ static const char *INJECTED_HARNESS_PROLOGUE =
     "#include <errno.h>\n"
     "#include <sys/mman.h>\n"
     "\n"
+    "__attribute__((constructor, used, no_sanitize(\"address\")))\n"
+    "static void __aed_init_stdio(void) {\n"
+    "    FILE *f = freopen(\"/tmp/aed_program_stdout.txt\", \"w\", stdout);\n"
+    "    if (f) setvbuf(stdout, NULL, _IONBF, 0);\n"
+    "}\n"
+    "\n"
     "struct TreeNode {\n"
     "    int val;\n"
     "    struct TreeNode *left;\n"
     "    struct TreeNode *right;\n"
+    "};\n"
+    "\n"
+    "struct ListNode {\n"
+    "    int val;\n"
+    "    struct ListNode *prev;\n"
+    "    struct ListNode *next;\n"
     "};\n"
     "\n"
     "/* Global Root Tracker, Forest Roots & Snapshot Serialization Buffer */\n"
@@ -759,7 +845,7 @@ static const char *INJECTED_HARNESS_PROLOGUE =
     "typedef struct {\n"
     "    uintptr_t addr;\n"
     "    size_t    size;\n"
-    "    int       state; /* 1 = LIVE, 2 = FREED */\n"
+    "    int       state; /* 1 = LIVE_TREE, 2 = FREED, 3 = LIVE_LIST */\n"
     "} __aed_alloc_entry_t;\n"
     "\n"
     "static __aed_alloc_entry_t __aed_alloc_table[512];\n"
@@ -798,7 +884,7 @@ static const char *INJECTED_HARNESS_PROLOGUE =
     "    if (!p) return;\n"
     "    uintptr_t target = (uintptr_t)p;\n"
     "    for (int i = __aed_alloc_count - 1; i >= 0; i--) {\n"
-    "        if (__aed_alloc_table[i].addr == target && __aed_alloc_table[i].state == 1) {\n"
+    "        if (__aed_alloc_table[i].addr == target && (__aed_alloc_table[i].state == 1 || __aed_alloc_table[i].state == 3)) {\n"
     "            __aed_alloc_table[i].state = 2;\n"
     "            memset(p, 0xFD, __aed_alloc_table[i].size);\n"
     "            break;\n"
@@ -807,7 +893,7 @@ static const char *INJECTED_HARNESS_PROLOGUE =
     "    free(p);\n"
     "}\n"
     "\n"
-    "/* Built-in Helper API (Subsystem E): new_node, bst_insert, BUILD_TREE */\n"
+    "/* Built-in Helper API (Subsystem E): new_node, bst_insert, BUILD_TREE, new_list_node, BUILD_LIST */\n"
     "__attribute__((used, noinline, no_sanitize(\"address\")))\n"
     "struct TreeNode* new_node(int val) {\n"
     "    struct TreeNode *n = (struct TreeNode*)__aed_malloc(sizeof(struct TreeNode));\n"
@@ -818,6 +904,48 @@ static const char *INJECTED_HARNESS_PROLOGUE =
     "    }\n"
     "    return n;\n"
     "}\n"
+    "\n"
+    "__attribute__((used, noinline, no_sanitize(\"address\")))\n"
+    "struct ListNode* new_list_node(int val) {\n"
+    "    struct ListNode *n = (struct ListNode*)__aed_malloc(sizeof(struct ListNode));\n"
+    "    if (n) {\n"
+    "        n->val  = val;\n"
+    "        n->prev = NULL;\n"
+    "        n->next = NULL;\n"
+    "        for (int i = __aed_alloc_count - 1; i >= 0; i--) {\n"
+    "            if (__aed_alloc_table[i].addr == (uintptr_t)n) {\n"
+    "                __aed_alloc_table[i].state = 3;\n"
+    "                break;\n"
+    "            }\n"
+    "        }\n"
+    "    }\n"
+    "    return n;\n"
+    "}\n"
+    "\n"
+    "__attribute__((used, noinline, no_sanitize(\"address\")))\n"
+    "struct ListNode* __aed_build_linked_list(const char *str) {\n"
+    "    if (!str) return NULL;\n"
+    "    const char *p = str;\n"
+    "    struct ListNode *head = NULL;\n"
+    "    struct ListNode *tail = NULL;\n"
+    "    while (*p) {\n"
+    "        while (*p && (isspace((unsigned char)*p) || *p == '[' || *p == ']' || *p == ',' || *p == ';')) p++;\n"
+    "        if (!*p) break;\n"
+    "        char *ep = NULL;\n"
+    "        long v = strtol(p, &ep, 10);\n"
+    "        if (ep != p) {\n"
+    "            p = ep;\n"
+    "            struct ListNode *node = new_list_node((int)v);\n"
+    "            if (!head) { head = node; tail = node; }\n"
+    "            else { tail->next = node; tail = node; }\n"
+    "        } else {\n"
+    "            p++;\n"
+    "        }\n"
+    "    }\n"
+    "    __aed_register_root((struct TreeNode *)head);\n"
+    "    return head;\n"
+    "}\n"
+    "#define BUILD_LIST(str) __aed_build_linked_list(str)\n"
     "\n"
     "__attribute__((used, noinline, no_sanitize(\"address\")))\n"
     "struct TreeNode* bst_insert(struct TreeNode *root, int val) {\n"
@@ -943,6 +1071,15 @@ static const char *INJECTED_HARNESS_PROLOGUE =
     "}\n"
     "\n"
     "__attribute__((used, noinline, no_sanitize(\"address\")))\n"
+    "int __aed_is_list_alloc(const void *p) {\n"
+    "    uintptr_t u = (uintptr_t)p;\n"
+    "    for (int i = __aed_alloc_count - 1; i >= 0; i--) {\n"
+    "        if (__aed_alloc_table[i].addr == u) return (__aed_alloc_table[i].state == 3) ? 1 : 0;\n"
+    "    }\n"
+    "    return 0;\n"
+    "}\n"
+    "\n"
+    "__attribute__((used, noinline, no_sanitize(\"address\")))\n"
     "int __aed_can_reach(struct TreeNode *start, struct TreeNode *target) {\n"
     "    if (!start || !target) return 0;\n"
     "    if (start == target) return 1;\n"
@@ -990,10 +1127,11 @@ static const char *INJECTED_HARNESS_PROLOGUE =
     "        visited_addrs[vcount++] = (uintptr_t)root;\n"
     "    }\n"
     "\n"
-    "    /* Also enqueue any live heap-allocated TreeNode (captures all forest roots & local islands) */\n"
+    "    /* Also enqueue any live heap-allocated TreeNode or ListNode (captures all forest roots & local islands) */\n"
     "    if (root == __aed_global_root) {\n"
     "        for (int a = 0; a < __aed_alloc_count && tail < 256 && vcount < 256; a++) {\n"
-    "            if (__aed_alloc_table[a].state == 1 && __aed_alloc_table[a].size == sizeof(struct TreeNode)) {\n"
+    "            if ((__aed_alloc_table[a].state == 1 || __aed_alloc_table[a].state == 3) &&\n"
+    "                __aed_alloc_table[a].size == sizeof(struct TreeNode)) {\n"
     "                uintptr_t cand = __aed_alloc_table[a].addr;\n"
     "                int seen = 0;\n"
     "                for (int k = 0; k < vcount; k++) {\n"
@@ -1063,6 +1201,9 @@ static const char *INJECTED_HARNESS_PROLOGUE =
     "            }\n"
     "        }\n"
     "\n"
+    "        if (__aed_is_list_alloc(curr)) {\n"
+    "            strcat(flags, \"LIST_NODE|\");\n"
+    "        }\n"
     "        if (flags[0] == '\\0') {\n"
     "            strcpy(flags, \"OK\");\n"
     "        } else {\n"
@@ -1552,10 +1693,16 @@ bool gdb_start_session(DebuggerSession *session)
     set_nonblocking(session->stdout_fd);
     set_nonblocking(session->stderr_fd);
 
-    /* Reset snapshot state */
+    /* Reset snapshot & program stdout state */
     memset(&session->snapshot, 0, sizeof(session->snapshot));
     session->snapshot.current_executing_line = 1;
-    session->step_bounce_guard = 0;
+    session->step_bounce_guard     = 0;
+    session->program_stdout[0]     = '\0';
+    session->program_stdout_len    = 0;
+    session->program_stdout_offset = 0;
+    session->has_new_stdout        = false;
+    FILE *sf = fopen("/tmp/aed_program_stdout.txt", "w");
+    if (sf) fclose(sf);
 
     /* Configure GDB environment & initial breakpoint */
     gdb_send_command(session, "-gdb-set environment ASAN_OPTIONS detect_leaks=0:abort_on_error=1:halt_on_error=1");
@@ -1717,6 +1864,9 @@ static void parse_dump_tree_output(
                 if (strstr(flags, "DANGLING_SELF")) {
                     n->is_dangling = true;
                 }
+                if (strstr(flags, "LIST_NODE")) {
+                    n->is_list_node = true;
+                }
 
                 /* Left edge state */
                 if (strstr(flags, "CYCLE_LEFT")) {
@@ -1770,6 +1920,9 @@ static bool is_root_like_var_name(const char *name)
             strcmp(name, "no") == 0 ||
             strcmp(name, "p") == 0 ||
             strcmp(name, "q") == 0 ||
+            strcmp(name, "head") == 0 ||
+            strcmp(name, "lista") == 0 ||
+            strcmp(name, "ant") == 0 ||
             strncmp(name, "arvore", 6) == 0 ||
             strncmp(name, "tree", 4) == 0 ||
             strncmp(name, "root", 4) == 0 ||
@@ -1777,8 +1930,126 @@ static bool is_root_like_var_name(const char *name)
             strncmp(name, "r2", 2) == 0);
 }
 
+static bool is_index_var_name(const char *name)
+{
+    if (!name) return false;
+    static const char *idx_names[] = {
+        "i", "j", "k", "mid", "meio", "low", "high",
+        "esq", "dir", "ini", "fim", "min_idx", "pivo",
+        "pivot", "posMeio", "preIdx", "pos"
+    };
+    for (size_t i = 0; i < sizeof(idx_names) / sizeof(idx_names[0]); i++) {
+        if (strcmp(name, idx_names[i]) == 0) return true;
+    }
+    return false;
+}
+
+static bool is_array_ptr_var_name(const char *name)
+{
+    if (!name) return false;
+    static const char *arr_names[] = {
+        "nums", "v", "vetor", "arr", "array", "preorder", "inorder",
+        "pre", "in", "seq", "chaves", "valores"
+    };
+    for (size_t i = 0; i < sizeof(arr_names) / sizeof(arr_names[0]); i++) {
+        if (strcmp(name, arr_names[i]) == 0) return true;
+    }
+    return false;
+}
+
+static void parse_int_brace_list(
+    const char         *brace_str,
+    const char         *var_name,
+    TreeSnapshot       *new_snap,
+    const TreeSnapshot *old_snap
+)
+{
+    if (!brace_str || !var_name || !new_snap) return;
+    if (new_snap->array_count >= MAX_VISUAL_ARRAYS) return;
+    /* Avoid duplicate array names */
+    for (int i = 0; i < new_snap->array_count; i++) {
+        if (strcmp(new_snap->arrays[i].name, var_name) == 0) return;
+    }
+
+    const char *open_b = strchr(brace_str, '{');
+    if (!open_b) return;
+
+    int vals[MAX_ARRAY_ELEMENTS];
+    int count = 0;
+    const char *p = open_b + 1;
+    while (*p && *p != '}' && count < MAX_ARRAY_ELEMENTS) {
+        while (*p && (isspace((unsigned char)*p) || *p == ',')) p++;
+        if (!*p || *p == '}') break;
+        char *ep = NULL;
+        long v = strtol(p, &ep, 10);
+        if (ep != p) {
+            vals[count++] = (int)v;
+            p = ep;
+        } else {
+            break;
+        }
+    }
+    if (count <= 0) return;
+
+    VisualArray *va = &new_snap->arrays[new_snap->array_count++];
+    memset(va, 0, sizeof(*va));
+    snprintf(va->name, sizeof(va->name), "%s", var_name);
+    va->count = count;
+
+    const VisualArray *old_va = NULL;
+    if (old_snap) {
+        for (int i = 0; i < old_snap->array_count; i++) {
+            if (strcmp(old_snap->arrays[i].name, var_name) == 0) {
+                old_va = &old_snap->arrays[i];
+                break;
+            }
+        }
+    }
+
+    for (int i = 0; i < count; i++) {
+        va->values[i] = vals[i];
+        if (old_va && i < old_va->count) {
+            if (old_va->values[i] != vals[i]) {
+                va->changed[i]      = true;
+                va->change_timer[i] = 1.0f;
+            } else {
+                va->change_timer[i] = fmaxf(0.0f, old_va->change_timer[i] - 0.25f);
+                va->changed[i]      = (va->change_timer[i] > 0.05f);
+            }
+        }
+    }
+}
+
+static void poll_program_stdout(DebuggerSession *session)
+{
+    if (!session) return;
+    int fd = open("/tmp/aed_program_stdout.txt", O_RDONLY);
+    if (fd < 0) return;
+    if (lseek(fd, session->program_stdout_offset, SEEK_SET) >= 0) {
+        char buf[2048];
+        ssize_t n = read(fd, buf, sizeof(buf) - 1);
+        if (n > 0) {
+            buf[n] = '\0';
+            session->program_stdout_offset += n;
+            size_t rem = sizeof(session->program_stdout) - session->program_stdout_len - 1;
+            size_t copy = ((size_t)n < rem) ? (size_t)n : rem;
+            if (copy > 0) {
+                memcpy(session->program_stdout + session->program_stdout_len, buf, copy);
+                session->program_stdout_len += copy;
+                session->program_stdout[session->program_stdout_len] = '\0';
+                session->has_new_stdout = true;
+            }
+        }
+    }
+    close(fd);
+}
+
+static void extract_mi_field(const char *line, const char *key, char *out, size_t out_sz);
+
 static void refresh_runtime_snapshot(DebuggerSession *session, int line, const char *func_name)
 {
+    poll_program_stdout(session);
+
     TreeSnapshot old_snap = session->snapshot;
     TreeSnapshot new_snap;
     memset(&new_snap, 0, sizeof(new_snap));
@@ -1786,6 +2057,37 @@ static void refresh_runtime_snapshot(DebuggerSession *session, int line, const c
     snprintf(new_snap.current_func, sizeof(new_snap.current_func), "%s", func_name ? func_name : "main");
 
     char reply[32768];
+
+    /* 0. Query active Call Stack frames (`-stack-list-frames`) for HUD observability */
+    if (gdb_query_sync(session, "-stack-list-frames", reply, sizeof(reply), 25)) {
+        const char *fp = reply;
+        while ((fp = strstr(fp, "frame={")) != NULL && new_snap.frame_count < MAX_CALL_STACK) {
+            const char *fend = strchr(fp, '}');
+            if (!fend) break;
+            char fbuf[512];
+            size_t flen = (size_t)(fend - fp);
+            if (flen >= sizeof(fbuf)) flen = sizeof(fbuf) - 1;
+            memcpy(fbuf, fp, flen);
+            fbuf[flen] = '\0';
+
+            char lvl_s[16] = { 0 }, fn_s[64] = { 0 }, file_s[128] = { 0 }, ln_s[16] = { 0 };
+            extract_mi_field(fbuf, "level", lvl_s, sizeof(lvl_s));
+            extract_mi_field(fbuf, "func",  fn_s,  sizeof(fn_s));
+            extract_mi_field(fbuf, "file",  file_s,sizeof(file_s));
+            extract_mi_field(fbuf, "line",  ln_s,  sizeof(ln_s));
+
+            int fline = atoi(ln_s);
+            if (strstr(file_s, "student_code.c") != NULL && fline > 0 && fline < 9000) {
+                StackFrameInfo *sf = &new_snap.frames[new_snap.frame_count++];
+                sf->level = atoi(lvl_s);
+                sf->line  = fline;
+                snprintf(sf->func, sizeof(sf->func), "%s", fn_s[0] ? fn_s : "main");
+                sf->args_summary[0] = '\0';
+            }
+            fp = fend + 1;
+        }
+        new_snap.call_stack_depth = new_snap.frame_count;
+    }
 
     /* 1. Query global root tracked by harness (`__aed_global_root`) and all live heap nodes */
     if (gdb_query_sync(session, "-data-evaluate-expression \"(unsigned long long)__aed_global_root\"",
@@ -1800,7 +2102,10 @@ static void refresh_runtime_snapshot(DebuggerSession *session, int line, const c
         parse_dump_tree_output(reply, &new_snap, &old_snap, (new_snap.active_root_addr == 0));
     }
 
-    /* 2. Query `-stack-list-variables --simple-values` to discover all `struct TreeNode *` in scope */
+    /* 2. Query `-stack-list-variables --simple-values` + array inspection for full local scope observability */
+    char pending_array_ptrs[4][64];
+    int  pending_array_ptr_count = 0;
+
     if (gdb_query_sync(session, "-stack-list-variables --simple-values", reply, sizeof(reply), 30)) {
         const char *cursor = reply;
         while ((cursor = strstr(cursor, "{name=\"")) != NULL) {
@@ -1813,38 +2118,50 @@ static void refresh_runtime_snapshot(DebuggerSession *session, int line, const c
             memcpy(item, cursor, ilen);
             item[ilen] = '\0';
 
-            if (strstr(item, "struct TreeNode *") != NULL) {
-                char var_name[64] = { 0 };
-                const char *np = strstr(item, "name=\"");
-                if (np) {
-                    np += 6;
-                    size_t k = 0;
-                    while (np[k] && np[k] != '"' && k < sizeof(var_name) - 1) {
-                        var_name[k] = np[k];
-                        k++;
-                    }
-                    var_name[k] = '\0';
-                }
+            char var_name[64]  = { 0 };
+            char type_str[64]  = { 0 };
+            char value_str[128]= { 0 };
+            extract_mi_field(item, "name",  var_name,  sizeof(var_name));
+            extract_mi_field(item, "type",  type_str,  sizeof(type_str));
+            extract_mi_field(item, "value", value_str, sizeof(value_str));
 
-                uint64_t ptr_val = 0;
-                const char *vp = strstr(item, "value=\"");
-                if (vp) {
-                    vp += 7;
-                    ptr_val = (uint64_t)strtoull(vp, NULL, 0);
-                }
+            if (var_name[0] == '\0' || strncmp(var_name, "__aed", 5) == 0) {
+                cursor = end_brace + 1;
+                continue;
+            }
 
-                if (var_name[0] != '\0' && strncmp(var_name, "__aed", 5) != 0 &&
-                    new_snap.local_var_count < MAX_LOCAL_VARS) {
+            bool is_tree_ptr = (strstr(type_str, "struct TreeNode *") != NULL && strstr(type_str, "[") == NULL);
+            bool is_list_ptr = (strstr(type_str, "struct ListNode *") != NULL && strstr(type_str, "[") == NULL);
+
+            if (is_tree_ptr || is_list_ptr) {
+                uint64_t ptr_val = (uint64_t)strtoull(value_str, NULL, 0);
+                if (new_snap.local_var_count < MAX_LOCAL_VARS) {
                     LocalPointerVar *lv = &new_snap.local_vars[new_snap.local_var_count++];
                     snprintf(lv->name, sizeof(lv->name), "%s", var_name);
                     lv->addr    = ptr_val;
                     lv->is_null = (ptr_val == 0);
 
+                    /* Track whether pointer changed since previous step */
+                    if (strcmp(old_snap.current_func, new_snap.current_func) == 0) {
+                        for (int ov = 0; ov < old_snap.local_var_count; ov++) {
+                            if (strcmp(old_snap.local_vars[ov].name, var_name) == 0) {
+                                if (old_snap.local_vars[ov].addr != ptr_val) {
+                                    lv->changed      = true;
+                                    lv->change_timer = 1.0f;
+                                } else {
+                                    lv->change_timer = fmaxf(0.0f, old_snap.local_vars[ov].change_timer - 0.25f);
+                                    lv->changed      = (lv->change_timer > 0.05f);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
                     if (ptr_val != 0) {
-                        char dump_cmd[160];
+                        char dump_cmd[192];
                         char dump_reply[32768];
                         snprintf(dump_cmd, sizeof(dump_cmd),
-                                 "-data-evaluate-expression \"__aed_dump_tree(%s)\"", var_name);
+                                 "-data-evaluate-expression \"__aed_dump_tree((struct TreeNode *)%s)\"", var_name);
                         if (gdb_query_sync(session, dump_cmd, dump_reply, sizeof(dump_reply), 35)) {
                             bool is_root_like = is_root_like_var_name(var_name);
                             if (strstr(dump_reply, "INVALID_ROOT:") != NULL) {
@@ -1862,12 +2179,108 @@ static void refresh_runtime_snapshot(DebuggerSession *session, int line, const c
                                 }
                                 bool detached = (ptr_val != new_snap.active_root_addr);
                                 parse_dump_tree_output(dump_reply, &new_snap, &old_snap, detached);
+                                if (is_list_ptr) {
+                                    for (int ni = 0; ni < new_snap.node_count; ni++) {
+                                        if (new_snap.nodes[ni].addr == ptr_val) {
+                                            new_snap.nodes[ni].is_list_node = true;
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            } else if (strstr(type_str, "int [") != NULL && new_snap.array_count < MAX_VISUAL_ARRAYS) {
+                /* Local fixed-size int array (e.g. int vetor[7], int nums[7]) */
+                if (strcmp(var_name, "visitados") != 0) {
+                    char eval_cmd[160];
+                    char eval_rep[4096];
+                    snprintf(eval_cmd, sizeof(eval_cmd), "-data-evaluate-expression \"%s\"", var_name);
+                    if (gdb_query_sync(session, eval_cmd, eval_rep, sizeof(eval_rep), 25)) {
+                        parse_int_brace_list(eval_rep, var_name, &new_snap, &old_snap);
+                    }
+                }
+            } else if (strstr(type_str, "int *") != NULL && is_array_ptr_var_name(var_name)) {
+                uint64_t pval = (uint64_t)strtoull(value_str, NULL, 0);
+                if (pval != 0 && pval != 0xbebebebebebebebeULL && pending_array_ptr_count < 4) {
+                    snprintf(pending_array_ptrs[pending_array_ptr_count++], 64, "%s", var_name);
+                }
+            } else if (value_str[0] != '\0' && new_snap.scalar_var_count < MAX_SCALAR_VARS) {
+                /* Primitive / Scalar variable (int, bool, char, float, double, int*) */
+                LocalScalarVar *sv = &new_snap.scalar_vars[new_snap.scalar_var_count++];
+                memset(sv, 0, sizeof(*sv));
+                snprintf(sv->name, sizeof(sv->name), "%s", var_name);
+                snprintf(sv->type_str, sizeof(sv->type_str), "%s", type_str);
+                snprintf(sv->value_str, sizeof(sv->value_str), "%s", value_str);
+
+                if (strcmp(type_str, "int") == 0 || strcmp(type_str, "long") == 0) {
+                    sv->is_int = true;
+                    sv->int_val = atoi(value_str);
+                    sv->is_index_candidate = is_index_var_name(var_name);
+                } else if (strstr(type_str, "int *") != NULL) {
+                    /* Dereference scalar int* parameter like `int *sum` or `int *k` for human readability */
+                    uint64_t pval = (uint64_t)strtoull(value_str, NULL, 0);
+                    if (pval != 0 && pval != 0xbebebebebebebebeULL) {
+                        char dcmd[128], drep[512];
+                        snprintf(dcmd, sizeof(dcmd), "-data-evaluate-expression \"*%s\"", var_name);
+                        if (gdb_query_sync(session, dcmd, drep, sizeof(drep), 15)) {
+                            char dval[64] = { 0 };
+                            extract_mi_field(drep, "value", dval, sizeof(dval));
+                            if (dval[0] != '\0') {
+                                snprintf(sv->value_str, sizeof(sv->value_str), "*%s = %s", var_name, dval);
+                                sv->is_int  = true;
+                                sv->int_val = atoi(dval);
+                            }
+                        }
+                    }
+                }
+
+                if (strcmp(old_snap.current_func, new_snap.current_func) == 0) {
+                    for (int os = 0; os < old_snap.scalar_var_count; os++) {
+                        if (strcmp(old_snap.scalar_vars[os].name, var_name) == 0) {
+                            if (strcmp(old_snap.scalar_vars[os].value_str, sv->value_str) != 0) {
+                                sv->changed      = true;
+                                sv->change_timer = 1.0f;
+                            } else {
+                                sv->change_timer = fmaxf(0.0f, old_snap.scalar_vars[os].change_timer - 0.25f);
+                                sv->changed      = (sv->change_timer > 0.05f);
+                            }
+                            break;
+                        }
+                    }
+                }
             }
+
             cursor = end_brace + 1;
+        }
+    }
+
+    /* Evaluate any pending `int *` array parameters (e.g. `int *v`, `int *nums`) using inferred size */
+    if (pending_array_ptr_count > 0 && new_snap.array_count < MAX_VISUAL_ARRAYS) {
+        int inferred_len = 7;
+        for (int s = 0; s < new_snap.scalar_var_count; s++) {
+            const LocalScalarVar *sv = &new_snap.scalar_vars[s];
+            if (!sv->is_int) continue;
+            if (strcmp(sv->name, "n") == 0 || strcmp(sv->name, "tam") == 0 ||
+                strcmp(sv->name, "numsSize") == 0 || strcmp(sv->name, "size") == 0 ||
+                strcmp(sv->name, "preorderSize") == 0 || strcmp(sv->name, "inorderSize") == 0) {
+                if (sv->int_val >= 1 && sv->int_val <= MAX_ARRAY_ELEMENTS) {
+                    inferred_len = sv->int_val;
+                    break;
+                }
+            } else if ((strcmp(sv->name, "dir") == 0 || strcmp(sv->name, "high") == 0 || strcmp(sv->name, "inDir") == 0) &&
+                       sv->int_val >= 1 && sv->int_val + 1 <= MAX_ARRAY_ELEMENTS) {
+                if (sv->int_val + 1 > inferred_len) inferred_len = sv->int_val + 1;
+            }
+        }
+        for (int a = 0; a < pending_array_ptr_count && new_snap.array_count < MAX_VISUAL_ARRAYS; a++) {
+            char eval_cmd[320];
+            char eval_rep[4096];
+            snprintf(eval_cmd, sizeof(eval_cmd), "-data-evaluate-expression \"*%s@%d\"",
+                     pending_array_ptrs[a], inferred_len);
+            if (gdb_query_sync(session, eval_cmd, eval_rep, sizeof(eval_rep), 25)) {
+                parse_int_brace_list(eval_rep, pending_array_ptrs[a], &new_snap, &old_snap);
+            }
         }
     }
 
@@ -2036,6 +2449,7 @@ static void handle_gdb_mi_line(DebuggerSession *session, const char *line)
 
         /* 1. Check normal program exit */
         if (strcmp(reason, "exited-normally") == 0 || strcmp(reason, "exited") == 0) {
+            poll_program_stdout(session);
             session->state     = STATE_FINISHED;
             session->auto_play = false;
 
@@ -2196,6 +2610,7 @@ static void handle_gdb_mi_line(DebuggerSession *session, const char *line)
 void gdb_poll_and_parse(DebuggerSession *session)
 {
     if (!session || session->gdb_pid <= 0) return;
+    poll_program_stdout(session);
 
     struct pollfd pfds[2];
     pfds[0].fd      = session->stdout_fd;

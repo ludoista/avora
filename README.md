@@ -2,7 +2,7 @@
   <img src="logo.jpg" alt="AVORA Logo" width="180" style="border-radius: 20px;" />
 </p>
 
-<h1 align="center">AVORA v3.0.1</h1>
+<h1 align="center">AVORA v3.2.0</h1>
 <h3 align="center">Analisador Visual de Operações e Rastreamento de Árvores</h3>
 
 <p align="center">
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Vers%C3%A3o-3.0.1-10B981?style=flat-square" alt="v3.0.1" />
+  <img src="https://img.shields.io/badge/Vers%C3%A3o-3.2.0-10B981?style=flat-square" alt="v3.2.0" />
   <img src="https://img.shields.io/badge/Linguagem-C11%20(POSIX)-38BDF8?style=flat-square" alt="C11" />
   <img src="https://img.shields.io/badge/Plataforma-Linux%20x86__64-1F2437?style=flat-square" alt="Linux" />
   <img src="https://img.shields.io/badge/Backend-GDB%2FMI%20%2B%20ASan-A78BFA?style=flat-square" alt="GDB/MI + ASan" />
@@ -49,12 +49,12 @@ O **AVORA** nasceu para solucionar esse problema: em vez de simular estruturas d
 Se você quer apenas baixar e usar o aplicativo imediatamente (sem precisar compilar o código-fonte do AVORA nem instalar bibliotecas gráficas extras):
 
 1. Acesse a aba **[Releases](https://github.com/ludoista/avora/releases)** aqui no GitHub.
-2. Baixe o arquivo **`AVORA-v3.0.0-Linux-x86_64-Release.zip`**.
+2. Baixe o arquivo **`AVORA-v3.0.1-Linux-x86_64-Release.zip`**.
 3. Extraia o arquivo `.zip` e escolha como deseja usar:
 
 ```bash
-unzip AVORA-v3.0.0-Linux-x86_64-Release.zip
-cd AVORA-v3.0.0-Linux-x86_64
+unzip AVORA-v3.0.1-Linux-x86_64-Release.zip
+cd AVORA-v3.0.1-Linux-x86_64
 
 # Para abrir imediatamente sem instalar no sistema:
 ./run.sh
@@ -100,21 +100,24 @@ make
 
 ---
 
-## ✨ Principais Funcionalidades (v3.0.0)
+## ✨ Principais Funcionalidades (v3.2.0)
 
-### 1. Identidade Visual *Midnight Slate* & Interface Orientada a Estados (*Progressive Disclosure*)
-- **Canvas em 100% da Altura:** Fundo `#0F111A` com **Dot Grid dinâmico** (`#1E2233`) sincronizado com Pan e Zoom, e nós estilizados em `#1F2437` com halo âmbar (`#F59E0B`) no nó em foco.
-- **Sem Poluição Visual:** Removidas barras de título redundantes e entradas externas. No modo **Edição**, o rodapé exibe apenas `[ ▶ Compilar & Iniciar ]`; no modo **Execução**, revela `[ ■ Parar ]`, `[ ⏭ Passo (Step) ]`, `[ ⏯ Auto-Play ]` e o slider exponencial de `Velocidade` (`0.05x` a `100x`).
-- **Pílula Flutuante de Câmera (`[ Auto | - 100% + ]`):** No canto inferior esquerdo do canvas, com toggle de **Auto-Foco** por *bounding box* que enquadra a estrutura suavemente (`Lerp`) a cada passo e desarma automaticamente ao detectar arraste ou scroll manual do usuário.
+### 1. Identidade Visual Configurável (7 Temas Estilo Monkeytype), Física Exponencial & Áudio Procedural
+- **7 Temas em Tempo Real (`Ctrl+,`):** *Midnight Slate*, *Serika Dark*, *Catppuccin Mocha*, *Nord*, *Gruvbox Dark*, *Dracula* e *Serika Light (Paper)* (alto contraste para projetores de sala de aula), aplicados instantaneamente no Editor, Canvas 2D, Nós, HUD, Terminal e Blob.
+- **Fluidez Independente de FPS & Feedback Tátil "Indie Crisp":** Todas as animações (Pan/Zoom/Auto-Foco da câmera, transição de nós, scroll do editor/terminal e mascote Blob) usam decaimento exponencial contínuo (`1.0f - expf(-speed * dt)`), 100% interrompível, acompanhadas de resposta tátil nos botões, flash de borda (`~150ms`) em nós modificados e micro-shake em erros.
+- **Áudio Procedural em Memória (`src/audio.c`):** Síntese leve de senoides em memória (sem arquivos `.wav` externos) para *Tick* de passo, *Pop* harmônico ao alocar/mutar nós, *Chime* de compilação e *Thud* de erro, 100% *fail-safe* e com botão rápido de **Mudo (`♪ SFX`)** na barra superior.
+- **Sem Poluição Visual (*Progressive Disclosure*):** No modo **Edição**, o rodapé exibe apenas `[ ▶ Compilar & Iniciar ]`; no modo **Execução**, revela `[ ■ Parar ]`, `[ ⏮ Voltar ]` (`Shift+F10`), `[ ⏭ Passo ]` (`F10`), `[ ▶ Continuar ]` (`F9`), `[ ⏯ Auto-Play ]` (`F8`) e o slider exponencial de `Velocidade` (`0.05x` a `100x`).
 
-### 2. Observabilidade Real: HUD de Call Stack/Variáveis + Terminal Retrátil
-- **HUD Flutuante (Canto Superior Esquerdo):** Exibe durante a depuração a **Pilha de Chamadas (`-stack-list-frames`)** e todas as **variáveis locais** do frame atual (ponteiros `0x...`/`NULL` e primitivos `int`, `bool`, `char`, `float`), destacando em âmbar (`●`) toda variável cujo valor mudou no último passo.
-- **Barra de Status & Terminal Retrátil (Rodapé):** Barra enxuta de status que desliza para cima ao clicar (ou automaticamente em falhas do compilador/execução), alternando entre:
-  - **Diagnóstico & Compilador (`GCC` / `ASan`):** Explicação didática + saída literal multilinha do compilador com linha exata.
-  - **Saída do Programa (`stdout` / `printf`):** Captura em tempo real e sem *buffering* de qualquer `printf`/`puts` executado pelo código do estudante.
+### 2. Time-Travel Visual (`Shift+F10`), Breakpoints no Gutter (`F9`), HUD & Terminal com `stdin` Opcional
+- **Voltar Passo (*Visual Time-Travel*):** Ring buffer em memória com os últimos **128 snapshots** completos (`TreeSnapshot` + linha ativa + Call Stack + variáveis locais), permitindo retroceder e re-avançar a execução instantaneamente sem depender de `reverse-step` do GDB.
+- **Breakpoints Clicáveis no Gutter:** Clique no número de qualquer linha no editor para ativar/desativar breakpoints (`●` vermelho) e use `[ ▶ Continuar ]` (`F9`) para saltar diretamente até o ponto de parada.
+- **HUD Flutuante (Canto Superior Esquerdo):** Exibe a **Pilha de Chamadas (`-stack-list-frames`)** e todas as **variáveis locais** do frame atual (ponteiros `0x...`/`NULL` e primitivos `int`, `bool`, `char`, `float`), destacando em âmbar (`●`) toda variável alterada no passo.
+- **Terminal Retrátil Unificado (`stdout` + `stdin` Opcional):**
+  - **Diagnóstico & Compilador (`GCC` / `ASan`):** Explicação didática + saída literal multilinha do compilador.
+  - **Terminal (`stdout` e `stdin` opcional):** Captura em tempo real qualquer `printf`/`puts`. Ao ativar `Habilitar Entrada Padrão (stdin)` nas Configurações (ou em **1 clique** através da sugestão inteligente do **Blob** quando `scanf`/`fgets`/`getchar` é detectado), divide o terminal em **Entrada (`stdin`)** e **Saída (`stdout`)** com proteção de `EOF` imediato para nunca travar o Watchdog POSIX.
 
-### 3. 18 Templates Interativos (Árvores, Florestas, Listas Encadeadas e Vetores)
-O seletor no topo do editor (acompanhado do botão `[ ↺ Resetar ]`) oferece **18 exemplos prontos e comentados**:
+### 3. 24 Templates Embutidos (AED I & AED II) + Templates Dinâmicos por Pasta (Modo Sala de Aula)
+Além do suporte a **pastas dinâmicas de templates** (`~/.config/avora/templates` — ideal para professores prepararem listas de exercícios por aula), o AVORA traz **24 exemplos embutidos e comentados**:
 
 | # | Categoria | Template | Destaque Didático |
 | :-: | :--- | :--- | :--- |
@@ -136,15 +139,20 @@ O seletor no topo do editor (acompanhado do botão `[ ↺ Resetar ]`) oferece **
 | **15** | Armadilha 3 | **Segfault (Desreferenciar `NULL`)** | Demonstra o acesso inválido `raiz->val` sem verificar `if (raiz == NULL)` |
 | **16** | Lista Encadeada | **Inversão & Ponteiros (`next`/`prev`)** | `struct ListNode` + `BUILD_LIST("[10, 20, 30, 40, 50]")` com layout linear |
 | **17** | Vetores & Busca | **Ordenação (Selection) & Busca Binária** | Células de vetor no Canvas com selos de índice (`i`, `j`, `esq`, `meio`, `dir`) + `printf` |
+| **18** | AED I (Pilha) | **Pilha (Stack): Expressões & Parênteses** | `push`/`pop` dinâmico em `struct ListNode` + vetor de expressão |
+| **19** | AED I (Fila) | **Fila Circular (Queue): Buffer Modular** | `enqueue`/`dequeue` com índices `head`, `tail`, `count` e aritmética modular |
+| **20** | AED I (Lista Dupla) | **Lista Duplamente Encadeada + Sentinela** | Inserção e remoção com ponteiros `prev` e `next` |
+| **21** | AED II (Ordenação) | **QuickSort & Partição de Lomuto** | Rastreamento visual de `pivo`, `i`, `j`, `low`, `high` e pilha recursiva |
+| **22** | AED II (Heap) | **Binary Heap (Max-Heap) & HeapSort** | `sift_down` in-place no vetor + projeção da árvore binária implícita |
+| **23** | AED II (Hashing) | **Tabela Hash (Encadeamento Separado)** | Tratamento de colisões em listas encadeadas + vetor de estado dos buckets |
 
-### 4. Mascote Pedagógico **Blob** (Árvore de Decisão Interativa)
-No canto inferior direito vive o **Blob**, concentrando toda a ajuda contextual sem poluir o topo da tela:
-- **Modo Exploratório:** Ao clicar no Blob, abre um card flutuante compacto com botões de decisão clicáveis (`Como usar BUILD_TREE & Listas`, `Modo LeetCode & Vetores`, `Guia Visual de Ponteiros & Memória Heap`).
-- **Modo Erro:** Acionado automaticamente em falhas de compilação, `SIGSEGV`, memória não inicializada (`0xBE`) ou ciclos, oferecendo botões contextuais como *"Por que isso aconteceu nessa linha?"*, *"Como corrigir?"* e *"Ver log bruto no Terminal ▲"*.
+### 4. Mascote Pedagógico **Blob**, Internacionalização (`PT-BR` / `EN-US` / `ES`) & Diagnóstico do Sistema
+- **Árvore de Decisão Interativa do Blob:** Ajuda contextual em modo exploratório, diagnóstico guiado em modo de erro e detecção proativa de leitura de `stdin`.
+- **Multi-idioma em Tempo Real (`src/i18n.c`):** Interface disponível em **Português (BR)**, **English (US)** e **Español**.
+- **Diagnóstico do Sistema & Suporte (`Menu Ajuda`):** Inspeciona versões do `gcc`, `gdb`, suporte ao `AddressSanitizer` e áudio, copiando um relatório Markdown completo em 1 clique.
 
-### 5. Ergonomia Moderna do Editor de Código C11
-- **Seleção com Mouse:** Duplo clique seleciona a palavra inteira (`isalnum` ou `_`); triplo clique seleciona a linha inteira.
-- **Atalhos & Navegação:** `Ctrl+Z` / `Ctrl+Y` (*Undo/Redo*), `Ctrl+A`, `Ctrl+C/X/V`, `Ctrl+Seta` (pular palavra), *Smart Home* / `End`, `Tab` / `Shift+Tab`, e scroll horizontal/vertical automático acompanhando o cursor.
+### 5. Ergonomia Completa de Aplicativo Desktop
+- **Menu Bar Superior & Persistência (`~/.config/avora/config.ini`):** Abrir/Salvar `.c`, arquivos recentes, exportar Canvas como `.png` (`Ctrl+E`), Modo Apresentação/Projetor (`Ctrl+Shift+P`), zoom da fonte (`Ctrl++` / `Ctrl+-`) e restauração automática da sessão e geometria da janela.
 
 ---
 
@@ -155,26 +163,29 @@ O código-fonte do **AVORA** é escrito em **C11 puro (`-std=c11 -D_GNU_SOURCE`)
 ```text
 avora/
 ├── include/
-│   ├── visualizer.h        # Contrato central: máquinas de estado, TreeSnapshot, VisualArray,
-│   │                       # StackFrameInfo, LocalScalarVar, Undo/Redo e árvore do Blob.
-│   └── raygui.h            # Implementação customizada do Raygui 4.x com tema Midnight Slate
-│                           # e GuiPrimaryButton (#10B981).
+│   ├── visualizer.h        # Contrato central: máquinas de estado, TreeSnapshot, Time-Travel,
+│   │                       # Breakpoints, AppConfig, ThemePalette, i18n, Audio e Blob.
+│   └── raygui.h            # Implementação customizada do Raygui 4.x com resposta tátil Indie Crisp
+│                           # e suporte a temas dinâmicos.
 ├── src/
-│   ├── main.c              # Ponto de entrada, janela OpenGL/Raylib a 60 FPS e loop principal.
+│   ├── main.c              # Ponto de entrada, ícone RGBA da janela, geometria e loop principal.
+│   ├── config.c            # Persistência ~/.config/avora/config.ini, 7 temas Monkeytype,
+│   │                       # scanner de templates dinâmicos por pasta e diálogos nativos.
+│   ├── i18n.c              # Tabelas de localização em tempo real (PT-BR, EN-US, ES).
+│   ├── audio.c             # Síntese procedural de efeitos sonoros em memória (Raylib/miniaudio).
 │   ├── ipc_gdb.c           # IPC POSIX não-bloqueante (fork/pipe/poll/setpgid/prctl), Harness
-│   │                       # injetado (/tmp/aed_sandbox.c), captura unbuffered de stdout,
-│   │                       # suporte a TreeNode/ListNode/Vetores, Call Stack e 18 templates.
+│   │                       # injetado (/tmp/aed_sandbox.c), captura de stdout + stdin opcional,
+│   │                       # Time-Travel ring buffer (128 snapshots), breakpoints e 24 templates.
 │   ├── layout_renderer.c   # Layout de Árvores, Florestas, Listas Encadeadas e Vetores 1D,
-│   │                       # Dot Grid dinâmico, Pílula de Câmera Auto-Foco, HUD de Variáveis
-│   │                       # & Pilha e árvore de decisão animada do Blob.
-│   ├── ui_workspace.c      # Editor C11 (duplo/triplo clique, Undo/Redo, Ctrl+Seta, syntax
-│   │                       # highlighting), Progressive Disclosure e Terminal Retrátil.
+│   │                       # física exponencial, HUD de Variáveis & Pilha e árvore do Blob.
+│   ├── ui_workspace.c      # Menu Bar, Modais (Configurações, Diagnóstico do Sistema, Atalhos),
+│   │                       # Editor C11 com gutter de breakpoints e Terminal Retrátil.
 │   └── diagnostics.c       # Tradutor pedagógico de erros GCC, GDB e AddressSanitizer.
 ├── logo.jpg                # Arte oficial do AVORA (ícone da janela e do instalador Linux).
 ├── Makefile                # Build padrão C11 (-Wall -Wextra -O2 -g3).
 ├── install.sh              # Instalador desktop Linux (compila, gera ícones PNG e .desktop).
 ├── uninstall.sh            # Desinstalador limpo dos arquivos de usuário.
-├── CHANGELOG.md            # Histórico de versões (v1.0.0 -> v2.0.0 -> v3.0.0).
+├── CHANGELOG.md            # Histórico de versões (v1.0.0 -> v2.0.0 -> v3.0.0 -> v3.1.0 -> v3.2.0).
 ├── LICENSE                 # Licença do projeto.
 └── README.md               # Documentação principal do projeto.
 ```

@@ -4,6 +4,76 @@ Todas as mudanças notáveis do projeto **AVORA** (*Analisador Visual de Operaç
 
 ---
 
+## [3.2.0] — 2026-11-19
+### Polimento Visual ("Responsividade iOS + Click Crisp Indie") & Áudio Procedural (`src/audio.c`)
+- **Física Exponencial Independente de Framerate (`avora_exp_decay`)**: todas as interpolações de câmera (Pan/Zoom/Auto-Foco), transições de nós no Canvas 2D, rolagem do editor/terminal, HUD e mascote Blob agora usam decaimento exponencial contínuo (`1.0f - expf(-speed * dt)`), 100% interrompível e respeitando `reduce_animations`.
+- **Micro-feedback Tátil "Indie Crisp"**:
+  - Deslocamento vertical sutil (`1.5px`) e realce nítido de borda no `IsMouseButtonDown` nos botões primários e secundários (`GuiPrimaryButton`, `GuiButton`).
+  - Flash curto de borda (`~150ms`) em nós recém-alocados ou modificados (rotações AVL, splits de Árvore B, recolorações Rubro-Negra, mutações em listas e vetores).
+  - Micro-shake sutil (`2–3px` por `~150ms`) + flash vermelho discreto no canvas em erros de compilação, `SIGSEGV` ou armadilhas do AddressSanitizer.
+- **Motor de Áudio Procedural em Memória (`src/audio.c`)**:
+  - Síntese procedural leve na inicialização (zero arquivos `.wav` externos) gerando 5 efeitos sutis: *Tick* mecânico em `Step`, *Pop* harmônico (com variação de pitch conforme a quantidade de nós) ao alocar/mutar nós, *Chime* ascendente ao compilar com sucesso, *Thud* grave em falhas/traps e *Click* discreto na UI.
+  - 100% *fail-safe* em ambientes Linux sem servidor de áudio ativo, com botão rápido de **Mudo (`♪ SFX` / `✕ Mudo`)** na barra superior e controle de volume (`audio_enabled`, `audio_volume`) persistido em `~/.config/avora/config.ini`.
+
+### Terminal Unificado + `stdin` Opcional & Sugestão Contextual do Blob
+- **Aba `Terminal` Unificada**: painel retrátil limpo com apenas 2 abas (`Diagnóstico & Compilador (GCC/ASan)` e `Terminal`).
+- **`stdin` Opcional (`enable_stdin` em `Configurações → Depurador`)**:
+  - Desativado por padrão (`false`) para manter zero poluição visual no modo LeetCode/`BUILD_TREE`.
+  - Quando ativado (`true`), divide a aba `Terminal` em **Entrada (`stdin`)** editável e **Saída (`stdout`)**, gravando `/tmp/aed_stdin.txt` e redirecionando o `stdin` do processo depurado com `EOF` imediato caso vazio (nunca bloqueando o Watchdog POSIX de `1.5s`).
+- **Detecção Inteligente do Blob (`BLOB_HINT_STDIN_DETECTED`)**: ao compilar/executar código contendo `scanf`, `fgets`, `getchar` ou `getline` com `enable_stdin == false`, o Blob sugere ativar e abrir o campo `stdin` em **1 clique**.
+
+### Expansão da Biblioteca Acadêmica (24 Templates Embutidos de AED I & AED II)
+- Adicionados **6 novos templates clássicos** de disciplinas de Algoritmos e Estruturas de Dados (`PRESET_COUNT = 24`):
+  - **18. Pilha (Stack):** Expressões & Parênteses Balanceados (`push`/`pop` em `struct ListNode` + vetor de rastreamento).
+  - **19. Fila Circular (Queue):** Buffer Modular com `head`, `tail`, `count` e aritmética `(tail + 1) % CAP`.
+  - **20. Lista Duplamente Encadeada com Nó Sentinela:** Inserção e remoção $O(1)$ com ponteiros `prev` e `next`.
+  - **21. QuickSort & Partição de Lomuto:** Rastreamento visual de `pivo`, `i`, `j` e recursion stack no HUD.
+  - **22. Binary Heap (Max-Heap) & HeapSort:** `sift_down` in-place + projeção visual da árvore implícita via `BUILD_TREE`.
+  - **23. Tabela Hash com Encadeamento Separado:** Tratamento de colisões com listas encadeadas e inspeção de buckets.
+
+### Internacionalização (`src/i18n.c`) & Diagnóstico do Sistema
+- **Seletor de Idioma em Tempo Real (`PT-BR`, `EN-US`, `ES`)**: módulo `src/i18n.c` com tradução imediata dos menus, botões principais, abas do terminal, HUD, configurações e diagnósticos, persistido em `config.ini` (`language`).
+- **Modal `Diagnóstico do Sistema & Suporte` (`Menu Ajuda`)**: verifica automaticamente as versões instaladas do `gcc` e `gdb`, suporte a AddressSanitizer, status do subsistema de áudio e caminhos de configuração, com botão para copiar um relatório Markdown completo para a área de transferência.
+
+### Ergonomia Avançada de Depuração: Time-Travel Visual (`Shift+F10`) & Breakpoints no Gutter (`F9`)
+- **Voltar Passo / Visual Time-Travel (`[ ⏮ Voltar ]` / `Shift+F10`)**: ring buffer em memória dos últimos **128 snapshots** (`TreeSnapshot` + linha ativa + Call Stack + variáveis locais), permitindo retroceder e re-avançar passos instantaneamente com animação suave sem depender de `reverse-step` do GDB.
+- **Breakpoints Clicáveis no Gutter & Continuar (`[ ▶ Continuar ]` / `F9`)**: clique diretamente no número da linha no gutter do editor para ativar/desativar breakpoints (`●` vermelho), sincronizados via `-break-insert student_code.c:<linha>` com o GDB, além de item no menu `Executar` para limpar todos os breakpoints.
+
+---
+
+## [3.1.0] — 2026-11-19
+### Experiência Completa de Aplicativo Desktop (Menu Bar, Atalhos & Janela)
+- **Menu Bar superior minimalista (`26px`)**: abas clássicas `Arquivo`, `Editar`, `Executar`, `Janela` e `Ajuda` com menus dropdown integrados ao tema ativo, indicador do arquivo/tema atual e acesso em 1 clique a `⚙ Configurações`.
+- **Polimento da Janela OS**:
+  - Título minimalista: `"AVORA"` (ou `"AVORA — arquivo.c ●"` quando há arquivo aberto ou alterações não salvas).
+  - Correção do ícone da janela no X11/Wayland/GLFW (`SetWindowIcon` com conversão garantida para RGBA 32-bit `PIXELFORMAT_UNCOMPRESSED_R8G8B8A8` a partir de `~/.local/share/avora/avora.png`, `/usr/local/share/avora/avora.png` ou `./logo.jpg`).
+  - Persistência automática de geometria da janela (`window_w`, `window_h`, estado maximizado) e posição do splitter vertical ao fechar.
+- **Atalhos Globais de Teclado**: `F5` (Compilar & Iniciar), `F10` (Passo/Step), `F8` (Auto-Play/Pausar), `Shift+F5` (Parar), `F11` (Tela Cheia), `F1` (Atalhos), `Ctrl+,` (Configurações), `Ctrl+N` (Novo), `Ctrl+O` (Abrir `.c`), `Ctrl+S` / `Ctrl+Shift+S` (Salvar / Salvar Como), `Ctrl+E` (Exportar PNG), `Ctrl+R` (Resetar Template), `Ctrl+\`` / `Ctrl+J` (Terminal), `Ctrl+Shift+P` (Modo Apresentação), `Ctrl++` / `Ctrl+-` / `Ctrl+0` (Zoom da fonte do editor) e `Ctrl+Q` (Sair).
+
+### Sistema de Configurações Persistentes (`~/.config/avora/config.ini`) & 7 Temas (Estilo Monkeytype)
+- **Modal de Configurações (`Ctrl+,`)** organizado em 4 abas laterais (`Aparência & Temas`, `Editor de Código`, `Depurador (GCC/GDB)`, `Templates & Janela`) com salvamento instantâneo e botão `↺ Restaurar Padrões`.
+- **7 Temas de Cores inspirados no Monkeytype** aplicados em tempo real no Editor, RayGUI, Canvas 2D, Nós, Vetores, HUD, Terminal e Blob:
+  1. **Midnight Slate** *(padrão original do AVORA)*
+  2. **Serika Dark** *(`#323437` / `#E2B714` / `#D1D0C5`)*
+  3. **Catppuccin Mocha** *(`#1E1E2E` / `#313244` / `#CBA6F7`)*
+  4. **Nord** *(`#2E3440` / `#3B4252` / `#88C0D0`)*
+  5. **Gruvbox Dark** *(`#282828` / `#3C3836` / `#FABD2F`)*
+  6. **Dracula** *(`#282A36` / `#44475A` / `#BD93F9`)*
+  7. **Serika Light (Paper)** *(tema claro de alto contraste para projetores de sala de aula e relatórios)*
+- **Opções de Visualização, Editor & Depurador**:
+  - Estilo do fundo do Canvas (`Dot Grid`, `Grade de Linhas`, `Fundo Liso`), toggle de endereços de memória (`0x...`) nos nós, toggle do HUD, toggle do Mascote Blob, redução de animações e **Modo Apresentação / Projetor**.
+  - Recarregamento dinâmico 1:1 do atlas da fonte do editor (`12px` a `24px`), largura do Tab (`2` ou `4` espaços), números de linha, destaque da linha atual, auto-indentação e restauração da última sessão.
+  - Toggle do **AddressSanitizer (ASan)**, timeout configurável do **Watchdog POSIX** (`1.5s`, `3.0s`, `5.0s`, `10.0s`), velocidade inicial do Auto-Play e abertura automática do terminal em `stdout`.
+
+### Templates Dinâmicos por Pasta (Modo Sala de Aula / AED1) & Operações de Arquivo
+- **Templates dinâmicos baseados em diretório** (`~/.config/avora/templates` ou qualquer pasta escolhida):
+  - Escaneia automaticamente arquivos `.c` (e subpastas como `[Aula01] exemplo.c`) e popula o seletor de templates com suporte a rolagem para até 64 itens.
+  - 3 modos de exibição: **Embutidos + Minha Pasta**, **Apenas Minha Pasta** (ideal para professores deixarem apenas os exemplos da aula) e **Apenas Embutidos (18)**.
+  - Botões utilitários para **Escolher Pasta**, **Abrir Pasta no Gerenciador (`xdg-open`)**, **Exportar os 18 Templates Padrão para a Pasta** e **Recarregar Lista**.
+- **Operações completas de Arquivo**: Abrir `.c`, lista de **Arquivos Recentes**, Salvar, Salvar Como, Salvar na Pasta de Templates, proteção contra descarte acidental de alterações não salvas e **Exportar Canvas como PNG**.
+
+---
+
 ## [3.0.1] — 2026-11-19 (Hotfix)
 ### Nitidez de Fontes (Full HD / 1080p) & Layout de Botões
 - **Renderização de texto 1:1 na UI + Mipmaps no Canvas**: carregados 4 atlas dedicados no startup (`16px` para o editor, `15px` para RayGUI/títulos, `13px` para HUD/Terminal/Blob/Status e `32px` com *mipmaps* + `TEXTURE_FILTER_TRILINEAR` para o canvas 2D com zoom).

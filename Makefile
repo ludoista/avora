@@ -4,6 +4,9 @@ LDFLAGS := -lraylib -lm
 
 TARGET  := aed_tree_debugger
 SRCS    := src/main.c \
+           src/config.c \
+           src/i18n.c \
+           src/audio.c \
            src/ui_workspace.c \
            src/layout_renderer.c \
            src/ipc_gdb.c \

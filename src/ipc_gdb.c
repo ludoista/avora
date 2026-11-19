@@ -646,6 +646,238 @@ static const char *PRESET_17_ARRAY_SORT_SEARCH =
     "    return 0;\n"
     "}\n";
 
+/* 18. AED I — Pilha (Stack): Validação de Parênteses Balanceados (LIFO) */
+static const char *PRESET_18_AED1_STACK =
+    "// 18. [AED I — Pilha / Stack] Validação de Parênteses & Chaves Balanceados (LIFO)\n"
+    "// Empilha (push) símbolos de abertura na Heap e desempilha (pop) ao encontrar fechamentos!\n"
+    "\n"
+    "void empilhar(struct ListNode** topo, int simbolo) {\n"
+    "    struct ListNode* novo = new_list_node(simbolo);\n"
+    "    novo->next = *topo;\n"
+    "    if (*topo != NULL) (*topo)->prev = novo;\n"
+    "    *topo = novo;\n"
+    "}\n"
+    "\n"
+    "int desempilhar(struct ListNode** topo) {\n"
+    "    if (*topo == NULL) return 0;\n"
+    "    struct ListNode* rem = *topo;\n"
+    "    int valor = rem->val;\n"
+    "    *topo = rem->next;\n"
+    "    if (*topo != NULL) (*topo)->prev = NULL;\n"
+    "    free(rem);\n"
+    "    return valor;\n"
+    "}\n"
+    "\n"
+    "int main(void) {\n"
+    "    // Expressão codificada: 1='(', -1=')', 2='[', -2=']', 3='{', -3='}'\n"
+    "    int expressao[6] = { 3, 2, 1, -1, -2, -3 }; // { [ ( ) ] }\n"
+    "    struct ListNode* topo = NULL;\n"
+    "    bool balanceada = true;\n"
+    "\n"
+    "    for (int i = 0; i < 6; i++) {\n"
+    "        int tok = expressao[i];\n"
+    "        if (tok > 0) {\n"
+    "            printf(\"PUSH(%d) no topo da pilha\\n\", tok);\n"
+    "            empilhar(&topo, tok);\n"
+    "        } else {\n"
+    "            int aberto = desempilhar(&topo);\n"
+    "            printf(\"POP() -> %d para fechar %d\\n\", aberto, tok);\n"
+    "            if (aberto + tok != 0) { balanceada = false; break; }\n"
+    "        }\n"
+    "    }\n"
+    "    if (topo != NULL) balanceada = false;\n"
+    "    printf(\"Expressao balanceada? %s\\n\", balanceada ? \"SIM\" : \"NAO\");\n"
+    "    return 0;\n"
+    "}\n";
+
+/* 19. AED I — Fila Circular (Queue): Vetor Circular com Aritmética Modular */
+static const char *PRESET_19_AED1_CIRCULAR_QUEUE =
+    "// 19. [AED I — Fila Circular / Queue] Vetor com Aritmética Modular ((fim + 1) % MAX)\n"
+    "// Observe no Canvas os ponteiros de índice 'ini' e 'fim' dando a volta circular no vetor!\n"
+    "\n"
+    "int main(void) {\n"
+    "    int fila[6] = { 0, 0, 0, 0, 0, 0 };\n"
+    "    int cap = 6;\n"
+    "    int ini = 0, fim = 0, qtd = 0;\n"
+    "\n"
+    "    // 1. Enfileira (enqueue) 4 elementos: 10, 20, 30, 40\n"
+    "    int entrada[4] = { 10, 20, 30, 40 };\n"
+    "    for (int i = 0; i < 4; i++) {\n"
+    "        fila[fim] = entrada[i];\n"
+    "        fim = (fim + 1) % cap;\n"
+    "        qtd++;\n"
+    "    }\n"
+    "    // 2. Desenfileira (dequeue) 2 elementos: 'ini' avança liberando o início!\n"
+    "    for (int k = 0; k < 2; k++) {\n"
+    "        int removido = fila[ini];\n"
+    "        fila[ini] = 0;\n"
+    "        ini = (ini + 1) % cap;\n"
+    "        qtd--;\n"
+    "        printf(\"Dequeue: %d (novo ini=%d, qtd=%d)\\n\", removido, ini, qtd);\n"
+    "    }\n"
+    "    // 3. Enfileira 50, 60, 70 dando a volta circular (wrap-around) para o índice 0!\n"
+    "    int extras[3] = { 50, 60, 70 };\n"
+    "    for (int i = 0; i < 3; i++) {\n"
+    "        fila[fim] = extras[i];\n"
+    "        fim = (fim + 1) % cap;\n"
+    "        qtd++;\n"
+    "    }\n"
+    "    printf(\"Fila Circular final: ini=%d, fim=%d, qtd=%d\\n\", ini, fim, qtd);\n"
+    "    return 0;\n"
+    "}\n";
+
+/* 20. AED I — Lista Duplamente Encadeada com Nó Sentinela (Cabeça) */
+static const char *PRESET_20_AED1_DOUBLY_SENTINEL =
+    "// 20. [AED I — Lista Duplamente Encadeada] Nó Sentinela (Cabeça) & Remoção Segura\n"
+    "// O nó sentinela (-1) elimina casos especiais de ponteiro NULL no início da lista!\n"
+    "\n"
+    "void inserirOrdenado(struct ListNode* sentinela, int val) {\n"
+    "    struct ListNode* novo = new_list_node(val);\n"
+    "    struct ListNode* ant  = sentinela;\n"
+    "    struct ListNode* atual = sentinela->next;\n"
+    "    while (atual != NULL && atual->val < val) {\n"
+    "        ant   = atual;\n"
+    "        atual = atual->next;\n"
+    "    }\n"
+    "    novo->next = atual;\n"
+    "    novo->prev = ant;\n"
+    "    ant->next  = novo;\n"
+    "    if (atual != NULL) atual->prev = novo;\n"
+    "}\n"
+    "\n"
+    "void removerValor(struct ListNode* sentinela, int alvo) {\n"
+    "    struct ListNode* atual = sentinela->next;\n"
+    "    while (atual != NULL && atual->val != alvo) {\n"
+    "        atual = atual->next;\n"
+    "    }\n"
+    "    if (atual == NULL) return;\n"
+    "    atual->prev->next = atual->next;\n"
+    "    if (atual->next != NULL) {\n"
+    "        atual->next->prev = atual->prev;\n"
+    "    }\n"
+    "    free(atual);\n"
+    "}\n"
+    "\n"
+    "int main(void) {\n"
+    "    struct ListNode* sentinela = new_list_node(-1); // Nó Cabeça / Sentinela\n"
+    "    inserirOrdenado(sentinela, 30);\n"
+    "    inserirOrdenado(sentinela, 10);\n"
+    "    inserirOrdenado(sentinela, 40);\n"
+    "    inserirOrdenado(sentinela, 20);\n"
+    "    removerValor(sentinela, 30);\n"
+    "    return 0;\n"
+    "}\n";
+
+/* 21. AED I/II — QuickSort & Partição de Lomuto (Vetor + Pilha de Chamadas no HUD) */
+static const char *PRESET_21_AED12_QUICKSORT =
+    "// 21. [AED I/II — QuickSort] Particionamento In-Place & Pilha de Chamadas no HUD\n"
+    "// Observe como 'i', 'j', 'esq' e 'dir' particionam o vetor em torno do pivô a cada chamada!\n"
+    "\n"
+    "int particionar(int* vetor, int esq, int dir, int tam) {\n"
+    "    (void)tam;\n"
+    "    int pivo_val = vetor[dir];\n"
+    "    int i = esq;\n"
+    "    for (int j = esq; j < dir; j++) {\n"
+    "        if (vetor[j] < pivo_val) {\n"
+    "            int tmp = vetor[i];\n"
+    "            vetor[i] = vetor[j];\n"
+    "            vetor[j] = tmp;\n"
+    "            i++;\n"
+    "        }\n"
+    "    }\n"
+    "    int tmp = vetor[i];\n"
+    "    vetor[i] = vetor[dir];\n"
+    "    vetor[dir] = tmp;\n"
+    "    return i;\n"
+    "}\n"
+    "\n"
+    "void quickSort(int* vetor, int esq, int dir, int tam) {\n"
+    "    if (esq >= dir) return;\n"
+    "    int pivo = particionar(vetor, esq, dir, tam);\n"
+    "    printf(\"Particao [%d..%d] -> pivo no indice %d (valor=%d)\\n\", esq, dir, pivo, vetor[pivo]);\n"
+    "    quickSort(vetor, esq, pivo - 1, tam);\n"
+    "    quickSort(vetor, pivo + 1, dir, tam);\n"
+    "}\n"
+    "\n"
+    "int main(void) {\n"
+    "    int vetor[7] = { 38, 27, 43, 3, 9, 82, 10 };\n"
+    "    int tam = 7;\n"
+    "    quickSort(vetor, 0, tam - 1, tam);\n"
+    "    return 0;\n"
+    "}\n";
+
+/* 22. AED II — Binary Heap (Max-Heap) & HeapSort (Sift-Down + Árvore Espelhada) */
+static const char *PRESET_22_AED2_BINARY_HEAP =
+    "// 22. [AED II — Binary Heap & HeapSort] Max-Heap com Sift-Down (Vetor + Árvore Binária)\n"
+    "// Visualiza simultaneamente o vetor do Heap (2*i+1, 2*i+2) e sua árvore binária completa!\n"
+    "\n"
+    "void siftDown(int* heap, int n, int pai) {\n"
+    "    while (1) {\n"
+    "        int maior = pai;\n"
+    "        int esq   = 2 * pai + 1;\n"
+    "        int dir   = 2 * pai + 2;\n"
+    "        if (esq < n && heap[esq] > heap[maior]) maior = esq;\n"
+    "        if (dir < n && heap[dir] > heap[maior]) maior = dir;\n"
+    "        if (maior == pai) break;\n"
+    "        int tmp = heap[pai];\n"
+    "        heap[pai] = heap[maior];\n"
+    "        heap[maior] = tmp;\n"
+    "        pai = maior;\n"
+    "    }\n"
+    "}\n"
+    "\n"
+    "struct TreeNode* espelharHeapEmArvore(int* heap, int n, int i) {\n"
+    "    if (i >= n) return NULL;\n"
+    "    struct TreeNode* no = new_node(heap[i]);\n"
+    "    no->left  = espelharHeapEmArvore(heap, n, 2 * i + 1);\n"
+    "    no->right = espelharHeapEmArvore(heap, n, 2 * i + 2);\n"
+    "    return no;\n"
+    "}\n"
+    "\n"
+    "int main(void) {\n"
+    "    int heap[7] = { 12, 40, 25, 18, 90, 55, 10 };\n"
+    "    int n = 7;\n"
+    "    // Build-Max-Heap: corrige de baixo para cima a partir do último pai (n/2 - 1)\n"
+    "    for (int i = n / 2 - 1; i >= 0; i--) {\n"
+    "        siftDown(heap, n, i);\n"
+    "    }\n"
+    "    printf(\"Max-Heap construido! Topo (maior) = %d\\n\", heap[0]);\n"
+    "    struct TreeNode* raiz = espelharHeapEmArvore(heap, n, 0);\n"
+    "    (void)raiz;\n"
+    "    return 0;\n"
+    "}\n";
+
+/* 23. AED II — Tabela Hash (Encadeamento Separado / Tratamento de Colisões) */
+static const char *PRESET_23_AED2_HASH_CHAINING =
+    "// 23. [AED II — Tabela Hash] Encadeamento Separado (Colisões h(k) = k % 3)\n"
+    "// Visualiza o vetor de contadores da tabela hash e as 3 listas encadeadas de colisão!\n"
+    "\n"
+    "void inserirNoBucket(struct ListNode** bucket, int chave) {\n"
+    "    struct ListNode* novo = new_list_node(chave);\n"
+    "    novo->next = *bucket;\n"
+    "    if (*bucket != NULL) (*bucket)->prev = novo;\n"
+    "    *bucket = novo;\n"
+    "}\n"
+    "\n"
+    "int main(void) {\n"
+    "    int tabela[3] = { 0, 0, 0 }; // Quantidade de chaves em cada bucket [0..2]\n"
+    "    struct ListNode* bucket0 = NULL;\n"
+    "    struct ListNode* bucket1 = NULL;\n"
+    "    struct ListNode* bucket2 = NULL;\n"
+    "\n"
+    "    int chaves[7] = { 15, 22, 8, 30, 19, 11, 45 };\n"
+    "    for (int i = 0; i < 7; i++) {\n"
+    "        int k = chaves[i];\n"
+    "        int h = k % 3;\n"
+    "        tabela[h]++;\n"
+    "        printf(\"Inserindo chave %d -> h(%d) = %d (colisoes no bucket: %d)\\n\", k, k, h, tabela[h]);\n"
+    "        if (h == 0)      inserirNoBucket(&bucket0, k);\n"
+    "        else if (h == 1) inserirNoBucket(&bucket1, k);\n"
+    "        else             inserirNoBucket(&bucket2, k);\n"
+    "    }\n"
+    "    return 0;\n"
+    "}\n";
+
 void load_code_preset(DebuggerSession *session, int preset_index)
 {
     if (!session) return;
@@ -725,11 +957,74 @@ void load_code_preset(DebuggerSession *session, int preset_index)
             snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_17_ARRAY_SORT_SEARCH);
             snprintf(session->test_input, sizeof(session->test_input), "[42, 12, 8, 95, 23, 4, 60]");
             break;
+        case 18:
+            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_18_AED1_STACK);
+            snprintf(session->test_input, sizeof(session->test_input), "[3, 2, 1, -1, -2, -3]");
+            break;
+        case 19:
+            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_19_AED1_CIRCULAR_QUEUE);
+            snprintf(session->test_input, sizeof(session->test_input), "[10, 20, 30, 40, 50, 60]");
+            break;
+        case 20:
+            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_20_AED1_DOUBLY_SENTINEL);
+            snprintf(session->test_input, sizeof(session->test_input), "[10, 20, 30, 40]");
+            break;
+        case 21:
+            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_21_AED12_QUICKSORT);
+            snprintf(session->test_input, sizeof(session->test_input), "[38, 27, 43, 3, 9, 82, 10]");
+            break;
+        case 22:
+            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_22_AED2_BINARY_HEAP);
+            snprintf(session->test_input, sizeof(session->test_input), "[12, 40, 25, 18, 90, 55, 10]");
+            break;
+        case 23:
+            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_23_AED2_HASH_CHAINING);
+            snprintf(session->test_input, sizeof(session->test_input), "[15, 22, 8, 30, 19, 11, 45]");
+            break;
         default:
             snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_1_LEETCODE_STD);
             snprintf(session->test_input, sizeof(session->test_input), "[4,1,6,0,2,5,7,null,null,null,3,null,null,null,8]");
             break;
     }
+}
+
+const char *get_builtin_preset_info(int index, const char **out_display_name, const char **out_filename)
+{
+    static const struct {
+        const char *display_name;
+        const char *filename;
+        const char **code_ptr;
+    } table[PRESET_COUNT] = {
+        { "0. Vazio (Scratchpad Livre)",                          "00_scratchpad_livre.c",                  &PRESET_0_SCRATCHPAD },
+        { "1. LeetCode 538: BST para Greater Tree (BUILD_TREE)",  "01_leetcode_538_bst_greater_tree.c",     &PRESET_1_LEETCODE_STD },
+        { "2. LeetCode 108: Vetor Ordenado -> BST (main c/ Vetor)", "02_leetcode_108_vetor_para_bst.c",     &PRESET_2_LEETCODE_ARRAY_BST },
+        { "3. LeetCode 105: Pré & Em-Ordem -> Árvore (2 Vetores)", "03_leetcode_105_pre_em_ordem.c",        &PRESET_3_LEETCODE_PRE_IN_ARRAY },
+        { "4. LeetCode 617: Mesclar Duas Árvores (main Floresta)", "04_leetcode_617_mesclar_floresta.c",    &PRESET_4_LEETCODE_MERGE_FOREST },
+        { "5. LeetCode 100: Same Tree — Comparar Floresta",       "05_leetcode_100_same_tree.c",            &PRESET_5_SAME_TREE_FOREST },
+        { "6. LeetCode 226+572: Inverter & Subtree (Floresta)",   "06_leetcode_226_572_inverter_subtree.c", &PRESET_6_INVERT_AND_SUBTREE },
+        { "7. Buscas: Binária (BST), DFS (Profundidade) & BFS",   "07_buscas_bst_dfs_bfs.c",                &PRESET_2_SEARCHES },
+        { "8. BST: Inserção & Remoção (3 Casos)",                 "08_bst_insercao_remocao.c",              &PRESET_3_BST_INSERT_REMOVE },
+        { "9. Travessias Clássicas (Pré, Em e Pós-Ordem)",        "09_travessias_pre_em_pos.c",             &PRESET_4_TRAVERSALS },
+        { "10. Árvore AVL (Balanceamento & Rotações)",            "10_arvore_avl_rotacoes.c",               &PRESET_5_AVL },
+        { "11. Árvore Rubro-Negra (Rotações & Flip de Cores)",    "11_arvore_rubro_negra.c",                &PRESET_6_RED_BLACK },
+        { "12. Árvore B / 2-3 (Cisão / Split & Mediana)",         "12_arvore_b_23_split.c",                 &PRESET_7_BTREE },
+        { "13. Armadilha 1: Ponteiro Sem NULL (Lixo)",            "13_armadilha_ponteiro_lixo.c",           &PRESET_9_BUG_GARBAGE },
+        { "14. Armadilha 2: Ciclo Estrutural (Rotação)",          "14_armadilha_ciclo_estrutural.c",        &PRESET_10_BUG_CYCLE },
+        { "15. Armadilha 3: Segfault (Desreferenciar NULL)",      "15_armadilha_segfault_null.c",           &PRESET_11_BUG_SEGFAULT },
+        { "16. Lista Encadeada: Inversão & Ponteiros (next/prev)", "16_lista_encadeada_inversao.c",         &PRESET_16_LINKED_LIST },
+        { "17. Vetores: Ordenação (Selection) & Busca Binária",   "17_vetores_ordenacao_busca.c",           &PRESET_17_ARRAY_SORT_SEARCH },
+        { "18. AED I — Pilha (Stack): Parênteses Balanceados",    "18_aed1_pilha_parenteses_lifo.c",        &PRESET_18_AED1_STACK },
+        { "19. AED I — Fila Circular (Queue): Aritmética Modular", "19_aed1_fila_circular_modular.c",       &PRESET_19_AED1_CIRCULAR_QUEUE },
+        { "20. AED I — Lista Dupla c/ Nó Sentinela (Cabeça)",     "20_aed1_lista_dupla_sentinela.c",        &PRESET_20_AED1_DOUBLY_SENTINEL },
+        { "21. AED I/II — QuickSort & Partição (Recursão + HUD)", "21_aed12_quicksort_recursao.c",          &PRESET_21_AED12_QUICKSORT },
+        { "22. AED II — Binary Heap (Max-Heap) & HeapSort",       "22_aed2_max_heap_heapsort.c",            &PRESET_22_AED2_BINARY_HEAP },
+        { "23. AED II — Tabela Hash (Encadeamento & Colisões)",   "23_aed2_tabela_hash_colisoes.c",         &PRESET_23_AED2_HASH_CHAINING }
+    };
+
+    if (index < 0 || index >= PRESET_COUNT) return NULL;
+    if (out_display_name) *out_display_name = table[index].display_name;
+    if (out_filename)     *out_filename     = table[index].filename;
+    return *(table[index].code_ptr);
 }
 
 /* ============================================================================
@@ -740,14 +1035,16 @@ void session_init(DebuggerSession *session)
 {
     if (!session) return;
     memset(session, 0, sizeof(*session));
-    session->state          = STATE_IDLE;
-    session->gdb_pid        = -1;
-    session->stdin_fd       = -1;
-    session->stdout_fd      = -1;
-    session->stderr_fd      = -1;
-    session->speed_slider_t = 0.391f; /* Maps to ~1.00x via 0.05 * 2000^t */
-    session->play_speed     = 0.05f * powf(2000.0f, session->speed_slider_t);
-    session->auto_play      = false;
+    session->state                = STATE_IDLE;
+    session->gdb_pid              = -1;
+    session->stdin_fd             = -1;
+    session->stdout_fd            = -1;
+    session->stderr_fd            = -1;
+    session->speed_slider_t       = 0.391f; /* Maps to ~1.00x via 0.05 * 2000^t */
+    session->play_speed           = 0.05f * powf(2000.0f, session->speed_slider_t);
+    session->auto_play            = false;
+    session->user_asan_pref       = true;
+    session->watchdog_timeout_sec = WATCHDOG_TIMEOUT_SEC;
 
     /* Default to Template 1 (LeetCode Padrão with BUILD_TREE) on startup */
     load_code_preset(session, 1);
@@ -798,6 +1095,7 @@ void session_cleanup(DebuggerSession *session)
     unlink("/tmp/aed_sandbox_bin");
     unlink("/tmp/aed_compile_err.txt");
     unlink("/tmp/aed_program_stdout.txt");
+    unlink("/tmp/aed_stdin.txt");
 }
 
 /* ============================================================================
@@ -819,6 +1117,8 @@ static const char *INJECTED_HARNESS_PROLOGUE =
     "\n"
     "__attribute__((constructor, used, no_sanitize(\"address\")))\n"
     "static void __aed_init_stdio(void) {\n"
+    "    FILE *fin = freopen(\"/tmp/aed_stdin.txt\", \"r\", stdin);\n"
+    "    (void)fin;\n"
     "    FILE *f = freopen(\"/tmp/aed_program_stdout.txt\", \"w\", stdout);\n"
     "    if (f) setvbuf(stdout, NULL, _IONBF, 0);\n"
     "}\n"
@@ -1560,30 +1860,39 @@ bool compile_student_code(DebuggerSession *session)
 
     fclose(fp);
 
-    /* 4. Run GCC with AddressSanitizer first */
-    session->asan_enabled = true;
-    int rc = system(
-        "LC_ALL=C gcc -std=c11 -g3 -O0 -fsanitize=address -fno-omit-frame-pointer "
-        "/tmp/aed_sandbox.c -o /tmp/aed_sandbox_bin 2> /tmp/aed_compile_err.txt"
-    );
+    /* 4. Run GCC respecting user AddressSanitizer preference */
+    int rc = 0;
+    if (session->user_asan_pref) {
+        session->asan_enabled = true;
+        rc = system(
+            "LC_ALL=C gcc -std=c11 -g3 -O0 -fsanitize=address -fno-omit-frame-pointer "
+            "/tmp/aed_sandbox.c -o /tmp/aed_sandbox_bin 2> /tmp/aed_compile_err.txt"
+        );
 
-    if (rc != 0) {
-        char err_buf[2048] = { 0 };
-        FILE *ef = fopen("/tmp/aed_compile_err.txt", "r");
-        if (ef) {
-            size_t n = fread(err_buf, 1, sizeof(err_buf) - 1, ef);
-            err_buf[n] = '\0';
-            fclose(ef);
-        }
+        if (rc != 0) {
+            char err_buf[2048] = { 0 };
+            FILE *ef = fopen("/tmp/aed_compile_err.txt", "r");
+            if (ef) {
+                size_t n = fread(err_buf, 1, sizeof(err_buf) - 1, ef);
+                err_buf[n] = '\0';
+                fclose(ef);
+            }
 
-        if (strstr(err_buf, "libasan") != NULL || strstr(err_buf, "-lasan") != NULL) {
-            /* Fallback compilation without -fsanitize=address when host lacks libasan package */
-            session->asan_enabled = false;
-            rc = system(
-                "LC_ALL=C gcc -std=c11 -g3 -O0 -fno-omit-frame-pointer "
-                "/tmp/aed_sandbox.c -o /tmp/aed_sandbox_bin 2> /tmp/aed_compile_err.txt"
-            );
+            if (strstr(err_buf, "libasan") != NULL || strstr(err_buf, "-lasan") != NULL) {
+                /* Fallback compilation without -fsanitize=address when host lacks libasan package */
+                session->asan_enabled = false;
+                rc = system(
+                    "LC_ALL=C gcc -std=c11 -g3 -O0 -fno-omit-frame-pointer "
+                    "/tmp/aed_sandbox.c -o /tmp/aed_sandbox_bin 2> /tmp/aed_compile_err.txt"
+                );
+            }
         }
+    } else {
+        session->asan_enabled = false;
+        rc = system(
+            "LC_ALL=C gcc -std=c11 -g3 -O0 -fno-omit-frame-pointer "
+            "/tmp/aed_sandbox.c -o /tmp/aed_sandbox_bin 2> /tmp/aed_compile_err.txt"
+        );
     }
 
     if (rc != 0) {
@@ -1693,9 +2002,11 @@ bool gdb_start_session(DebuggerSession *session)
     set_nonblocking(session->stdout_fd);
     set_nonblocking(session->stderr_fd);
 
-    /* Reset snapshot & program stdout state */
+    /* Reset snapshot, visual time-travel history & program stdout state */
     memset(&session->snapshot, 0, sizeof(session->snapshot));
     session->snapshot.current_executing_line = 1;
+    session->history_count         = 0;
+    session->history_cursor        = -1;
     session->step_bounce_guard     = 0;
     session->program_stdout[0]     = '\0';
     session->program_stdout_len    = 0;
@@ -1704,13 +2015,33 @@ bool gdb_start_session(DebuggerSession *session)
     FILE *sf = fopen("/tmp/aed_program_stdout.txt", "w");
     if (sf) fclose(sf);
 
-    /* Configure GDB environment & initial breakpoint */
+    /* Write student stdin buffer to /tmp/aed_stdin.txt (empty file -> immediate EOF so Watchdog never hangs) */
+    FILE *inf = fopen("/tmp/aed_stdin.txt", "w");
+    if (inf) {
+        if (session->enable_stdin && session->stdin_buffer[0] != '\0') {
+            fputs(session->stdin_buffer, inf);
+            size_t slen = strlen(session->stdin_buffer);
+            if (slen > 0 && session->stdin_buffer[slen - 1] != '\n') {
+                fputc('\n', inf);
+            }
+        }
+        fclose(inf);
+    }
+
+    /* Configure GDB environment & initial breakpoint + user gutter breakpoints */
     gdb_send_command(session, "-gdb-set environment ASAN_OPTIONS detect_leaks=0:abort_on_error=1:halt_on_error=1");
     gdb_send_command(session, "-gdb-set pagination off");
     gdb_send_command(session, "-gdb-set confirm off");
     gdb_send_command(session, "-gdb-set print elements 0");
     gdb_send_command(session, "-gdb-set print repeats 0");
     gdb_send_command(session, "-break-insert main");
+    for (int b = 0; b < session->breakpoint_count; b++) {
+        if (session->breakpoints[b] > 0) {
+            char bcmd[128];
+            snprintf(bcmd, sizeof(bcmd), "-break-insert student_code.c:%d", session->breakpoints[b]);
+            gdb_send_command(session, bcmd);
+        }
+    }
     gdb_send_command(session, "-exec-run");
 
     session->state = STATE_STEPPING;
@@ -1728,6 +2059,122 @@ void gdb_request_step(DebuggerSession *session)
     session->waiting_for_step = true;
     arm_watchdog(session);
     gdb_send_command(session, "-exec-step");
+}
+
+static void apply_historical_snapshot_smooth(DebuggerSession *session, const TreeSnapshot *hist)
+{
+    if (!session || !hist) return;
+    TreeSnapshot prev = session->snapshot;
+    TreeSnapshot next = *hist;
+
+    /* Preserve current_pos from previous displayed frame so nodes glide back/forth smoothly */
+    for (int i = 0; i < next.node_count; i++) {
+        next.nodes[i].border_flash_timer = 0.14f;
+        for (int j = 0; j < prev.node_count; j++) {
+            if (prev.nodes[j].addr == next.nodes[i].addr) {
+                next.nodes[i].current_pos = prev.nodes[j].current_pos;
+                break;
+            }
+        }
+    }
+    next.mutated_node_count = 1;
+    session->snapshot = next;
+}
+
+bool session_can_step_back(const DebuggerSession *session)
+{
+    if (!session) return false;
+    return (session->history_count > 1 && session->history_cursor > 0);
+}
+
+bool session_step_back(DebuggerSession *session)
+{
+    if (!session_can_step_back(session)) return false;
+    session->auto_play = false;
+    if (session->state == STATE_RUNNING) {
+        session->state = STATE_PAUSED;
+    }
+    session->history_cursor--;
+    apply_historical_snapshot_smooth(session, &session->history_snapshots[session->history_cursor]);
+    return true;
+}
+
+void session_step_forward_or_gdb(DebuggerSession *session)
+{
+    if (!session) return;
+    if (session->history_count > 0 && session->history_cursor >= 0 &&
+        session->history_cursor + 1 < session->history_count) {
+        session->history_cursor++;
+        apply_historical_snapshot_smooth(session, &session->history_snapshots[session->history_cursor]);
+        return;
+    }
+    gdb_request_step(session);
+}
+
+void gdb_request_continue(DebuggerSession *session)
+{
+    if (!session || session->gdb_pid <= 0) return;
+    if (session->state != STATE_PAUSED && session->state != STATE_RUNNING) return;
+
+    /* Jump back to live tip before continuing GDB execution */
+    if (session->history_count > 0) {
+        session->history_cursor = session->history_count - 1;
+        session->snapshot = session->history_snapshots[session->history_cursor];
+    }
+
+    session->auto_play = false;
+    session->state = STATE_STEPPING;
+    session->waiting_for_step = true;
+    arm_watchdog(session);
+    gdb_send_command(session, "-exec-continue");
+}
+
+static void sync_gdb_breakpoints_live(DebuggerSession *session)
+{
+    if (!session || session->gdb_pid <= 0 || session->state != STATE_PAUSED) return;
+    gdb_send_command(session, "-break-delete");
+    for (int i = 0; i < session->breakpoint_count; i++) {
+        if (session->breakpoints[i] > 0) {
+            char bcmd[128];
+            snprintf(bcmd, sizeof(bcmd), "-break-insert student_code.c:%d", session->breakpoints[i]);
+            gdb_send_command(session, bcmd);
+        }
+    }
+}
+
+bool session_has_breakpoint(const DebuggerSession *session, int line)
+{
+    if (!session || line <= 0) return false;
+    for (int i = 0; i < session->breakpoint_count; i++) {
+        if (session->breakpoints[i] == line) return true;
+    }
+    return false;
+}
+
+void session_toggle_breakpoint(DebuggerSession *session, int line)
+{
+    if (!session || line <= 0) return;
+    for (int i = 0; i < session->breakpoint_count; i++) {
+        if (session->breakpoints[i] == line) {
+            for (int j = i; j + 1 < session->breakpoint_count; j++) {
+                session->breakpoints[j] = session->breakpoints[j + 1];
+            }
+            session->breakpoint_count--;
+            sync_gdb_breakpoints_live(session);
+            return;
+        }
+    }
+    if (session->breakpoint_count < MAX_USER_BREAKPOINTS) {
+        session->breakpoints[session->breakpoint_count++] = line;
+        sync_gdb_breakpoints_live(session);
+    }
+}
+
+void session_clear_breakpoints(DebuggerSession *session)
+{
+    if (!session) return;
+    session->breakpoint_count = 0;
+    sync_gdb_breakpoints_live(session);
 }
 
 /* ============================================================================
@@ -1805,14 +2252,18 @@ static VisualNode* find_or_add_node(
     node->is_detached = is_detached;
     node->forest_id   = -1;
 
-    /* Preserve previous position for smooth 60 FPS Vector2Lerp animation */
+    /* Preserve previous position for smooth 60 FPS animation */
     bool existed = false;
     if (old_snap) {
         for (int i = 0; i < old_snap->node_count; i++) {
             if (old_snap->nodes[i].addr == addr) {
-                node->current_pos     = old_snap->nodes[i].current_pos;
-                node->target_pos      = old_snap->nodes[i].target_pos;
-                node->highlight_timer = old_snap->nodes[i].highlight_timer;
+                node->current_pos        = old_snap->nodes[i].current_pos;
+                node->target_pos         = old_snap->nodes[i].target_pos;
+                node->highlight_timer    = old_snap->nodes[i].highlight_timer;
+                node->border_flash_timer = old_snap->nodes[i].border_flash_timer;
+                node->val                = old_snap->nodes[i].val;
+                node->left_addr          = old_snap->nodes[i].left_addr;
+                node->right_addr         = old_snap->nodes[i].right_addr;
                 existed = true;
                 break;
             }
@@ -1825,6 +2276,8 @@ static VisualNode* find_or_add_node(
         node->target_pos         = node->current_pos;
         node->is_newly_allocated = true;
         node->highlight_timer    = 1.0f;
+        node->border_flash_timer = 0.16f;
+        new_snap->mutated_node_count++;
     }
 
     return node;
@@ -1854,8 +2307,11 @@ static void parse_dump_tree_output(
                    &addr, &val, &laddr, &raddr, flags) == 5 && addr != 0) {
             VisualNode *n = find_or_add_node(new_snap, old_snap, (uint64_t)addr, is_detached_tree);
             if (n) {
-                if (n->val != val && !n->is_newly_allocated) {
-                    n->highlight_timer = 1.0f;
+                if (!n->is_newly_allocated &&
+                    (n->val != val || n->left_addr != (uint64_t)laddr || n->right_addr != (uint64_t)raddr)) {
+                    n->highlight_timer    = 1.0f;
+                    n->border_flash_timer = 0.16f;
+                    new_snap->mutated_node_count++;
                 }
                 n->val        = val;
                 n->left_addr  = (uint64_t)laddr;
@@ -1922,7 +2378,11 @@ static bool is_root_like_var_name(const char *name)
             strcmp(name, "q") == 0 ||
             strcmp(name, "head") == 0 ||
             strcmp(name, "lista") == 0 ||
+            strcmp(name, "topo") == 0 ||
+            strcmp(name, "sentinela") == 0 ||
+            strcmp(name, "cabeca") == 0 ||
             strcmp(name, "ant") == 0 ||
+            strncmp(name, "bucket", 6) == 0 ||
             strncmp(name, "arvore", 6) == 0 ||
             strncmp(name, "tree", 4) == 0 ||
             strncmp(name, "root", 4) == 0 ||
@@ -1936,7 +2396,7 @@ static bool is_index_var_name(const char *name)
     static const char *idx_names[] = {
         "i", "j", "k", "mid", "meio", "low", "high",
         "esq", "dir", "ini", "fim", "min_idx", "pivo",
-        "pivot", "posMeio", "preIdx", "pos"
+        "pivot", "posMeio", "preIdx", "pos", "pai", "maior"
     };
     for (size_t i = 0; i < sizeof(idx_names) / sizeof(idx_names[0]); i++) {
         if (strcmp(name, idx_names[i]) == 0) return true;
@@ -1949,7 +2409,8 @@ static bool is_array_ptr_var_name(const char *name)
     if (!name) return false;
     static const char *arr_names[] = {
         "nums", "v", "vetor", "arr", "array", "preorder", "inorder",
-        "pre", "in", "seq", "chaves", "valores"
+        "pre", "in", "seq", "chaves", "valores", "pilha", "fila",
+        "heap", "tabela", "expressao"
     };
     for (size_t i = 0; i < sizeof(arr_names) / sizeof(arr_names[0]); i++) {
         if (strcmp(name, arr_names[i]) == 0) return true;
@@ -2012,6 +2473,7 @@ static void parse_int_brace_list(
             if (old_va->values[i] != vals[i]) {
                 va->changed[i]      = true;
                 va->change_timer[i] = 1.0f;
+                new_snap->mutated_node_count++;
             } else {
                 va->change_timer[i] = fmaxf(0.0f, old_va->change_timer[i] - 0.25f);
                 va->changed[i]      = (va->change_timer[i] > 0.05f);
@@ -2402,6 +2864,22 @@ static void refresh_runtime_snapshot(DebuggerSession *session, int line, const c
     }
 
     session->snapshot = new_snap;
+
+    /* Record snapshot in Visual Time-Travel ring buffer (up to MAX_TIME_TRAVEL_SNAPS) */
+    if (session->history_count < MAX_TIME_TRAVEL_SNAPS) {
+        session->history_snapshots[session->history_count] = new_snap;
+        session->history_cursor = session->history_count;
+        session->history_count++;
+    } else {
+        memmove(
+            &session->history_snapshots[0],
+            &session->history_snapshots[1],
+            (size_t)(MAX_TIME_TRAVEL_SNAPS - 1) * sizeof(TreeSnapshot)
+        );
+        session->history_snapshots[MAX_TIME_TRAVEL_SNAPS - 1] = new_snap;
+        session->history_cursor = MAX_TIME_TRAVEL_SNAPS - 1;
+    }
+
     diagnostics_inspect_snapshot(&session->snapshot, &session->diagnostic, &session->state);
 }
 
@@ -2596,6 +3074,9 @@ static void handle_gdb_mi_line(DebuggerSession *session, const char *line)
 
         /* 4. Stopped cleanly inside student_code.c! */
         session->step_bounce_guard = 0;
+        if (strcmp(reason, "breakpoint-hit") == 0 && session_has_breakpoint(session, src_line)) {
+            session->auto_play = false;
+        }
         session->state = session->auto_play ? STATE_RUNNING : STATE_PAUSED;
         refresh_runtime_snapshot(session, src_line, func_str);
 
@@ -2687,17 +3168,25 @@ void watchdog_check(DebuggerSession *session)
     double elapsed = (double)(now.tv_sec - session->last_cmd_timestamp.tv_sec) +
                      (double)(now.tv_nsec - session->last_cmd_timestamp.tv_nsec) / 1.0e9;
 
-    if (elapsed > WATCHDOG_TIMEOUT_SEC) {
+    double limit = (session->watchdog_timeout_sec >= 0.5f)
+                   ? (double)session->watchdog_timeout_sec
+                   : WATCHDOG_TIMEOUT_SEC;
+
+    if (elapsed > limit) {
         int last_line = session->snapshot.current_executing_line;
         gdb_stop_session(session);
         session->state = STATE_TIMEOUT;
+        char msg[160];
+        snprintf(msg, sizeof(msg),
+                 "Watchdog POSIX (CLOCK_MONOTONIC > %.1fs): Processo encerrado com kill(-gdb_pid, SIGKILL).",
+                 limit);
         diagnostics_set_runtime_trap(
             &session->diagnostic,
             ERR_INFINITE_LOOP,
             last_line,
             0,
             0,
-            "Watchdog POSIX (CLOCK_MONOTONIC > 1.5s): Processo encerrado com kill(-gdb_pid, SIGKILL)."
+            msg
         );
     }
 }

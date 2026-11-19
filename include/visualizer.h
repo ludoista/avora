@@ -13,7 +13,7 @@
 #include <raylib.h>
 #include <raymath.h>
 
-#define AVORA_VERSION "3.3.0"
+#define AVORA_VERSION "3.3.1"
 #define AVORA_WINDOW_TITLE "AVORA"
 
 #define MAX_TREE_NODES        256

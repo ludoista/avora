@@ -4,6 +4,17 @@ Todas as mudanças notáveis do projeto **AVORA** (*Analisador Visual de Operaç
 
 ---
 
+## [3.3.1] — 2026-11-19 (Hotfix de Layout & Responsividade da UI)
+- **Alinhamento pela direita e limites seguros nas Configurações (`draw_settings_modal`)**:
+  - Modal ampliado para `900px` (`fminf(900.0f, sw - 32.0f)`) para comportar a fonte monoespaçada com folga.
+  - Aba *Editor*: controles de tamanho da fonte (`-`, `16 px`, `+`, `Padrão (16)`) e seleção de indentação (`2 Espaços`, `4 Espaços`) ancorados dentro da largura útil `cw`, sem vazar pela borda direita.
+  - Aba *Aparência*: botões segmentados do fundo (`Dot Grid`, `Linhas`, `Liso`) e labels das checkboxes encurtados para caberem sem corte.
+  - Aba *Depurador*: slider de velocidade inicial e `Reset 1.0x` proporcionais a `cw`, e checkboxes com texto conciso.
+- **Modal de Atalhos (`draw_shortcuts_modal`)**: ampliado para `880px` com duas colunas balanceadas e `BeginScissorMode` de proteção.
+- **Menus Dropdown da Barra Superior**: largura ampliada (`fminf(380.0f, sw - menu_x - 8.0f)`) para eliminar sobreposição entre nomes de ação e atalhos (`Shift+F10`, `Ctrl+,`).
+
+---
+
 ## [3.3.0] — 2026-11-19
 ### Modo Apresentação / Palco Completo (Controle via Setas & Passador Bluetooth)
 - **Navegação por Setas e Controle Remoto Bluetooth (`Ctrl+Shift+P`)**:

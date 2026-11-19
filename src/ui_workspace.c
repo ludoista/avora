@@ -2339,7 +2339,7 @@ static void draw_top_menu_bar_and_dropdowns(
     /* Render Active Dropdown Menu Box */
     float menu_x = tab_rects[ui->active_menu].x;
     float menu_y = MENU_BAR_H + 2.0f;
-    float menu_w = 278.0f;
+    float menu_w = fminf(380.0f, sw - menu_x - 8.0f);
     float item_h = 24.0f;
 
     int   item_rows = 0;
@@ -2809,14 +2809,16 @@ static bool draw_segmented_option_btn(
     DrawRectangleRounded(bounds, 0.25f, 6, bg);
     DrawRectangleRoundedLinesEx(bounds, 0.25f, 6, 1.2f, bd);
     Vector2 tsz = MeasureTextEx(font, label, 13.0f, 1.0f);
+    BeginScissorMode((int)bounds.x + 2, (int)bounds.y, (int)bounds.width - 4, (int)bounds.height);
     DrawTextEx(
         font,
         label,
-        (Vector2){ floorf(bounds.x + (bounds.width - tsz.x) * 0.5f + 0.5f), floorf(bounds.y + (bounds.height - tsz.y) * 0.5f + 0.5f) },
+        (Vector2){ floorf(bounds.x + (bounds.width - tsz.x) * 0.5f), floorf(bounds.y + (bounds.height - tsz.y) * 0.5f) },
         13.0f,
         1.0f,
         fg
     );
+    EndScissorMode();
     return (hov && IsMouseButtonReleased(MOUSE_LEFT_BUTTON));
 }
 
@@ -2832,8 +2834,8 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
 
     DrawRectangle(0, 0, (int)sw, (int)sh, Fade(BLACK, pal->is_light ? 0.35f : 0.60f));
 
-    float mw = fminf(780.0f, sw - 48.0f);
-    float mh = fminf(545.0f, sh - 44.0f);
+    float mw = fminf(900.0f, sw - 32.0f);
+    float mh = fminf(560.0f, sh - 32.0f);
     Rectangle modal = { floorf((sw - mw) * 0.5f), floorf((sh - mh) * 0.5f), mw, mh };
 
     DrawRectangleRounded(
@@ -2966,7 +2968,7 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
         DrawTextEx(font_ui, "Estilo do Fundo do Canvas 2D", (Vector2){ cx, cy }, 14.0f, 1.0f, pal->accent_secondary);
         cy += 19.0f;
 
-        static const char *bg_styles[3] = { "Grade de Pontos (Dot Grid)", "Grade de Linhas", "Fundo Liso" };
+        static const char *bg_styles[3] = { "Dot Grid", "Linhas", "Liso" };
         float seg_w = floorf((cw - 16.0f) / 3.0f);
         for (int b = 0; b < 3; b++) {
             Rectangle sr = { cx + (float)b * (seg_w + 8.0f), cy, seg_w, 26.0f };
@@ -2977,15 +2979,15 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
         }
         cy += 34.0f;
 
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 21.0f }, "Exibir endereços de memória (0x...) abaixo dos nós da Heap", &cfg->show_memory_addresses, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 21.0f }, "Exibir endereços de memória (0x...) nos nós", &cfg->show_memory_addresses, font_sm, pal)) changed = true;
         cy += 22.0f;
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 21.0f }, "Exibir HUD Flutuante (Pilha de Chamadas & Variáveis Locais)", &cfg->show_hud, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 21.0f }, "Exibir HUD Flutuante (Call Stack & Variáveis)", &cfg->show_hud, font_sm, pal)) changed = true;
         cy += 22.0f;
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 21.0f }, "Exibir Mascote Pedagógico Blob (?) no canto inferior direito", &cfg->show_blob, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 21.0f }, "Exibir Mascote Blob (?) no canto inferior direito", &cfg->show_blob, font_sm, pal)) changed = true;
         cy += 22.0f;
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 21.0f }, "Reduzir animações (transições instantâneas de nós e painéis)", &cfg->reduce_animations, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 21.0f }, "Reduzir animações (transições instantâneas)", &cfg->reduce_animations, font_sm, pal)) changed = true;
         cy += 22.0f;
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 21.0f }, "Modo Apresentação / Projetor (amplia fontes do editor e nós)", &cfg->presentation_mode, font_sm, pal)) {
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 21.0f }, "Modo Apresentação / Palco (setas e nós grandes)", &cfg->presentation_mode, font_sm, pal)) {
             ui_workspace_reload_editor_font(ui);
             changed = true;
         }
@@ -3003,12 +3005,13 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
         }
     } else if (ui->settings_active_tab == 1) {
         /* TAB 1: EDITOR DE CÓDIGO */
-        DrawTextEx(font_ui, "Tipografia & Indentação do Editor C11", (Vector2){ cx, cy }, 15.0f, 1.0f, pal->accent_secondary);
+        DrawTextEx(font_ui, "Tipografia & Indentação do Editor C11", (Vector2){ floorf(cx), floorf(cy) }, 15.0f, 1.0f, pal->accent_secondary);
         cy += 28.0f;
 
-        const char *fsz_title = "Tamanho da Fonte do Editor (Ctrl+ / Ctrl-):";
+        const char *fsz_title = "Fonte do Editor (Ctrl+ / -):";
         DrawTextEx(font_sm, fsz_title, (Vector2){ floorf(cx), floorf(cy + 7.0f) }, 13.0f, 1.0f, pal->text_primary);
-        float ctrl_x = cx + fmaxf(332.0f, floorf(MeasureTextEx(font_sm, fsz_title, 13.0f, 1.0f).x + 20.0f));
+        float font_ctrl_total_w = 236.0f;
+        float ctrl_x = floorf(cx + cw - font_ctrl_total_w);
         if (GuiButton((Rectangle){ ctrl_x, cy, 32.0f, 28.0f }, "-")) {
             if (cfg->editor_font_size > 12) {
                 cfg->editor_font_size--;
@@ -3027,54 +3030,54 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
                 changed = true;
             }
         }
-        if (GuiButton((Rectangle){ ctrl_x + 136.0f, cy, 98.0f, 28.0f }, "Padrão (16)")) {
+        if (GuiButton((Rectangle){ ctrl_x + 136.0f, cy, 100.0f, 28.0f }, "Padrão (16)")) {
             cfg->editor_font_size = 16;
             ui_workspace_reload_editor_font(ui);
             changed = true;
         }
         cy += 42.0f;
 
-        DrawTextEx(font_sm, "Largura da Indentação (Tecla Tab):", (Vector2){ floorf(cx), floorf(cy + 7.0f) }, 13.0f, 1.0f, pal->text_primary);
-        if (draw_segmented_option_btn((Rectangle){ ctrl_x, cy, 112.0f, 28.0f }, "2 Espaços", cfg->tab_size == 2, font_sm, pal)) {
+        DrawTextEx(font_sm, "Indentação (Tecla Tab):", (Vector2){ floorf(cx), floorf(cy + 7.0f) }, 13.0f, 1.0f, pal->text_primary);
+        if (draw_segmented_option_btn((Rectangle){ ctrl_x, cy, 114.0f, 28.0f }, "2 Espaços", cfg->tab_size == 2, font_sm, pal)) {
             cfg->tab_size = 2;
             changed = true;
         }
-        if (draw_segmented_option_btn((Rectangle){ ctrl_x + 122.0f, cy, 112.0f, 28.0f }, "4 Espaços", cfg->tab_size == 4, font_sm, pal)) {
+        if (draw_segmented_option_btn((Rectangle){ ctrl_x + 122.0f, cy, 114.0f, 28.0f }, "4 Espaços", cfg->tab_size == 4, font_sm, pal)) {
             cfg->tab_size = 4;
             changed = true;
         }
         cy += 46.0f;
 
-        DrawTextEx(font_ui, "Comportamento & Sessão", (Vector2){ cx, cy }, 15.0f, 1.0f, pal->accent_secondary);
+        DrawTextEx(font_ui, "Comportamento & Sessão", (Vector2){ floorf(cx), floorf(cy) }, 15.0f, 1.0f, pal->accent_secondary);
         cy += 26.0f;
 
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Exibir números de linha na margem esquerda (Gutter)", &cfg->show_line_numbers, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Exibir números de linha na margem (Gutter)", &cfg->show_line_numbers, font_sm, pal)) changed = true;
         cy += 30.0f;
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Destacar linha atual do cursor durante a edição", &cfg->highlight_current_line, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Destacar linha atual do cursor", &cfg->highlight_current_line, font_sm, pal)) changed = true;
         cy += 30.0f;
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Auto-indentação inteligente ao pressionar Enter (e após '{')", &cfg->auto_indent, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Auto-indentação inteligente (Enter e '{')", &cfg->auto_indent, font_sm, pal)) changed = true;
         cy += 30.0f;
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Restaurar última sessão (último arquivo ou template) ao iniciar", &cfg->restore_last_session, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Restaurar última sessão ao iniciar", &cfg->restore_last_session, font_sm, pal)) changed = true;
         cy += 30.0f;
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Confirmar antes de sair ou trocar de arquivo com alterações não salvas", &cfg->confirm_unsaved_changes, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Confirmar antes de descartar alterações não salvas", &cfg->confirm_unsaved_changes, font_sm, pal)) changed = true;
     } else if (ui->settings_active_tab == 2) {
         /* TAB 2: DEPURADOR (GCC / GDB) */
-        DrawTextEx(font_ui, "Compilador GCC & Sanitizer de Memória", (Vector2){ cx, cy }, 15.0f, 1.0f, pal->accent_secondary);
+        DrawTextEx(font_ui, "Compilador GCC & Sanitizer de Memória", (Vector2){ floorf(cx), floorf(cy) }, 15.0f, 1.0f, pal->accent_secondary);
         cy += 26.0f;
 
         if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f },
-                              "Ativar AddressSanitizer (ASan: -fsanitize=address) p/ Use-After-Free & OOB",
+                              "Ativar AddressSanitizer (ASan: Use-After-Free & OOB)",
                               &cfg->asan_enabled, font_sm, pal)) {
             session->user_asan_pref = cfg->asan_enabled;
             changed = true;
         }
         cy += 38.0f;
 
-        DrawTextEx(font_ui, "Timeout do Watchdog POSIX (Proteção contra Loop Infinito)", (Vector2){ cx, cy }, 15.0f, 1.0f, pal->accent_secondary);
+        DrawTextEx(font_ui, "Timeout do Watchdog POSIX (Loop Infinito)", (Vector2){ floorf(cx), floorf(cy) }, 15.0f, 1.0f, pal->accent_secondary);
         cy += 24.0f;
 
         static const float wd_vals[4] = { 1.5f, 3.0f, 5.0f, 10.0f };
-        static const char *wd_lbls[4] = { "1.5s (Padrão)", "3.0s", "5.0s", "10.0s (Longo)" };
+        static const char *wd_lbls[4] = { "1.5s (Padrão)", "3.0s", "5.0s", "10.0s" };
         float w_btn = floorf((cw - 24.0f) / 4.0f);
         for (int w = 0; w < 4; w++) {
             bool is_cur = (fabsf(cfg->watchdog_timeout_sec - wd_vals[w]) < 0.2f);
@@ -3087,32 +3090,35 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
         }
         cy += 42.0f;
 
-        DrawTextEx(font_ui, "Execução & Velocidade Padrão do Auto-Play", (Vector2){ cx, cy }, 15.0f, 1.0f, pal->accent_secondary);
+        DrawTextEx(font_ui, "Execução & Velocidade Padrão do Auto-Play", (Vector2){ floorf(cx), floorf(cy) }, 15.0f, 1.0f, pal->accent_secondary);
         cy += 26.0f;
 
         float def_spd = 0.05f * powf(2000.0f, cfg->default_speed_t);
         char spd_lbl[64];
-        snprintf(spd_lbl, sizeof(spd_lbl), "Velocidade inicial: %.2fx", def_spd);
+        snprintf(spd_lbl, sizeof(spd_lbl), "Vel. inicial: %.2fx", def_spd);
         DrawTextEx(font_sm, spd_lbl, (Vector2){ floorf(cx), floorf(cy + 5.0f) }, 13.0f, 1.0f, pal->text_primary);
 
-        float prev_t = cfg->default_speed_t;
-        GuiSliderBar((Rectangle){ cx + 185.0f, cy + 4.0f, 190.0f, 18.0f }, NULL, NULL, &cfg->default_speed_t, 0.0f, 1.0f);
+        float reset_w  = 92.0f;
+        float slider_x = cx + 175.0f;
+        float slider_w = fmaxf(120.0f, cw - 175.0f - reset_w - 14.0f);
+        float prev_t   = cfg->default_speed_t;
+        GuiSliderBar((Rectangle){ slider_x, cy + 4.0f, slider_w, 18.0f }, NULL, NULL, &cfg->default_speed_t, 0.0f, 1.0f);
         if (fabsf(cfg->default_speed_t - prev_t) > 0.0005f) {
             session->speed_slider_t = cfg->default_speed_t;
             changed = true;
         }
-        if (GuiButton((Rectangle){ cx + 388.0f, cy - 1.0f, 88.0f, 26.0f }, "Reset 1.0x")) {
+        if (GuiButton((Rectangle){ cx + cw - reset_w, cy - 1.0f, reset_w, 26.0f }, "Reset 1.0x")) {
             cfg->default_speed_t    = 0.391f;
             session->speed_slider_t = 0.391f;
             changed = true;
         }
         cy += 40.0f;
 
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Iniciar depuração pausado na primeira linha da main()", &cfg->start_paused_on_main, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Iniciar depuração pausado na main()", &cfg->start_paused_on_main, font_sm, pal)) changed = true;
         cy += 28.0f;
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Abrir Terminal Retrátil automaticamente ao receber saída em stdout (printf)", &cfg->auto_open_terminal_on_stdout, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Abrir Terminal ao imprimir em stdout (printf)", &cfg->auto_open_terminal_on_stdout, font_sm, pal)) changed = true;
         cy += 28.0f;
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Ativar Entrada Padrão (stdin) na aba Terminal (scanf / fgets / getchar)", &cfg->enable_stdin, font_sm, pal)) {
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Ativar Entrada (stdin) na aba Terminal", &cfg->enable_stdin, font_sm, pal)) {
             session->enable_stdin = cfg->enable_stdin;
             changed = true;
         }
@@ -3355,8 +3361,8 @@ static void draw_shortcuts_modal(WorkspaceUI *ui, float sw, float sh)
     Font font_sm = ui->font_sm;
 
     DrawRectangle(0, 0, (int)sw, (int)sh, Fade(BLACK, pal->is_light ? 0.35f : 0.60f));
-    float mw = fminf(780.0f, sw - 40.0f);
-    float mh = 420.0f;
+    float mw = fminf(880.0f, sw - 32.0f);
+    float mh = 425.0f;
     Rectangle modal = { floorf((sw - mw) * 0.5f), floorf((sh - mh) * 0.5f), mw, mh };
 
     DrawRectangleRounded(modal, 0.05f, 8, pal->bg_panel);
@@ -3371,41 +3377,50 @@ static void draw_shortcuts_modal(WorkspaceUI *ui, float sw, float sh)
         { "Ctrl + O",       "Abrir arquivo .c" },
         { "Ctrl + S",       "Salvar arquivo .c atual" },
         { "Ctrl + Shift+S", "Salvar Como..." },
-        { "Ctrl + E",       "Exportar Canvas como PNG" },
+        { "Ctrl + E",       "Exportar Canvas PNG" },
         { "Ctrl + R",       "Resetar Template atual" },
         { "Ctrl + ,",       "Abrir Configurações" },
         { "Ctrl + Q",       "Sair do AVORA" },
-        { "Ctrl + Z / Y",   "Desfazer / Refazer contínuo" }
+        { "Ctrl + Z / Y",   "Desfazer / Refazer" }
     };
     static const struct { const char *key; const char *desc; } right_col[] = {
-        { "F5 / Shift+F5",   "Compilar & Iniciar / Parar" },
-        { "F10 / Shift+F10", "Avançar / Voltar Passo (Time-Travel)" },
-        { "F9",              "Continuar até Breakpoint" },
-        { "F8",              "Auto-Play / Pausar" },
-        { "Clique no Gutter","Alternar Breakpoint na Linha (●)" },
-        { "Ctrl + ` / J",    "Mostrar / Ocultar Terminal" },
-        { "Ctrl + Shift+P",  "Modo Apresentação / Palco (Setas)" },
+        { "F5 / Shift+F5",  "Compilar & Iniciar / Parar" },
+        { "F10 / Shift+F10","Avançar / Voltar (Time-Travel)" },
+        { "F9",             "Continuar até Breakpoint" },
+        { "F8",             "Auto-Play / Pausar" },
+        { "Clique Gutter",  "Alternar Breakpoint (●)" },
+        { "Ctrl + ` / J",   "Mostrar / Ocultar Terminal" },
+        { "Ctrl + Shift+P", "Modo Apresentação (Palco)" },
         { "Ctrl + + / - / 0","Zoom da Fonte do Editor" },
-        { "F11",             "Alternar Tela Cheia" }
+        { "F11",            "Alternar Tela Cheia" }
     };
 
-    float y0 = modal.y + 56.0f;
-    float right_x = modal.x + floorf(mw * 0.48f);
+    float y0      = modal.y + 56.0f;
+    float col_w   = floorf((mw - 52.0f) * 0.5f);
+    float left_x  = modal.x + 18.0f;
+    float right_x = left_x + col_w + 16.0f;
+    float kb_w    = 134.0f;
+
     for (int i = 0; i < 9; i++) {
         float y = y0 + (float)i * 32.0f;
+
         /* Left column */
-        Rectangle kb1 = { modal.x + 18.0f, y, 118.0f, 24.0f };
+        Rectangle kb1 = { left_x, y, kb_w, 24.0f };
         DrawRectangleRounded(kb1, 0.25f, 4, pal->bg_elevated);
         DrawRectangleRoundedLinesEx(kb1, 0.25f, 4, 1.0f, pal->border);
         DrawTextEx(font_sm, left_col[i].key, (Vector2){ floorf(kb1.x + 8.0f), floorf(kb1.y + 5.0f) }, 13.0f, 1.0f, pal->accent_primary);
-        DrawTextEx(font_sm, left_col[i].desc, (Vector2){ floorf(kb1.x + 126.0f), floorf(kb1.y + 5.0f) }, 13.0f, 1.0f, pal->text_primary);
+        BeginScissorMode((int)(kb1.x + kb_w + 8.0f), (int)y, (int)(col_w - kb_w - 8.0f), 24);
+        DrawTextEx(font_sm, left_col[i].desc, (Vector2){ floorf(kb1.x + kb_w + 8.0f), floorf(kb1.y + 5.0f) }, 13.0f, 1.0f, pal->text_primary);
+        EndScissorMode();
 
         /* Right column */
-        Rectangle kb2 = { right_x, y, 128.0f, 24.0f };
+        Rectangle kb2 = { right_x, y, kb_w, 24.0f };
         DrawRectangleRounded(kb2, 0.25f, 4, pal->bg_elevated);
         DrawRectangleRoundedLinesEx(kb2, 0.25f, 4, 1.0f, pal->border);
         DrawTextEx(font_sm, right_col[i].key, (Vector2){ floorf(kb2.x + 8.0f), floorf(kb2.y + 5.0f) }, 13.0f, 1.0f, pal->accent_secondary);
-        DrawTextEx(font_sm, right_col[i].desc, (Vector2){ floorf(kb2.x + 136.0f), floorf(kb2.y + 5.0f) }, 13.0f, 1.0f, pal->text_primary);
+        BeginScissorMode((int)(kb2.x + kb_w + 8.0f), (int)y, (int)(col_w - kb_w - 8.0f), 24);
+        DrawTextEx(font_sm, right_col[i].desc, (Vector2){ floorf(kb2.x + kb_w + 8.0f), floorf(kb2.y + 5.0f) }, 13.0f, 1.0f, pal->text_primary);
+        EndScissorMode();
     }
 
     if (GuiPrimaryButton((Rectangle){ modal.x + mw - 132.0f, modal.y + mh - 42.0f, 114.0f, 28.0f }, "Fechar (Esc)")) {

@@ -2,7 +2,7 @@
   <img src="logo.jpg" alt="AVORA Logo" width="180" style="border-radius: 20px;" />
 </p>
 
-<h1 align="center">AVORA v3.0</h1>
+<h1 align="center">AVORA v3.0.1</h1>
 <h3 align="center">Analisador Visual de Operações e Rastreamento de Árvores</h3>
 
 <p align="center">
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Vers%C3%A3o-3.0.0-10B981?style=flat-square" alt="v3.0.0" />
+  <img src="https://img.shields.io/badge/Vers%C3%A3o-3.0.1-10B981?style=flat-square" alt="v3.0.1" />
   <img src="https://img.shields.io/badge/Linguagem-C11%20(POSIX)-38BDF8?style=flat-square" alt="C11" />
   <img src="https://img.shields.io/badge/Plataforma-Linux%20x86__64-1F2437?style=flat-square" alt="Linux" />
   <img src="https://img.shields.io/badge/Backend-GDB%2FMI%20%2B%20ASan-A78BFA?style=flat-square" alt="GDB/MI + ASan" />

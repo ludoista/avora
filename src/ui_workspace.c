@@ -145,6 +145,7 @@ void ui_workspace_init(WorkspaceUI *ui, DebuggerSession *session)
         0x25CF, /* ● */
         0x23ED, /* ⏭ */
         0x23EF, /* ⏯ */
+        0x23F8, /* ⏸ */
         0x23F9, /* ⏹ */
         0x2705, /* ✅ */
         0x2715, /* ✕ */
@@ -154,12 +155,46 @@ void ui_workspace_init(WorkspaceUI *ui, DebuggerSession *session)
         codepoints[cp_count++] = extra_cps[i];
     }
 
+    Font def_font = GetFontDefault();
+    ui->mono_font   = def_font;
+    ui->font_ui     = def_font;
+    ui->font_sm     = def_font;
+    ui->font_canvas = def_font;
+
     for (int i = 0; font_candidates[i] != NULL; i++) {
         if (access(font_candidates[i], R_OK) == 0) {
-            ui->mono_font = LoadFontEx(font_candidates[i], 20, codepoints, cp_count);
-            if (ui->mono_font.texture.id != 0) {
-                SetTextureFilter(ui->mono_font.texture, TEXTURE_FILTER_BILINEAR);
-                GuiSetFont(ui->mono_font);
+            Font f16 = LoadFontEx(font_candidates[i], 16, codepoints, cp_count);
+            if (f16.texture.id != 0) {
+                Font f15 = LoadFontEx(font_candidates[i], 15, codepoints, cp_count);
+                Font f13 = LoadFontEx(font_candidates[i], 13, codepoints, cp_count);
+                Font f32 = LoadFontEx(font_candidates[i], 32, codepoints, cp_count);
+
+                SetTextureFilter(f16.texture, TEXTURE_FILTER_BILINEAR);
+                ui->mono_font = f16;
+
+                if (f15.texture.id != 0) {
+                    SetTextureFilter(f15.texture, TEXTURE_FILTER_BILINEAR);
+                    ui->font_ui = f15;
+                } else {
+                    ui->font_ui = f16;
+                }
+
+                if (f13.texture.id != 0) {
+                    SetTextureFilter(f13.texture, TEXTURE_FILTER_BILINEAR);
+                    ui->font_sm = f13;
+                } else {
+                    ui->font_sm = ui->font_ui;
+                }
+
+                if (f32.texture.id != 0) {
+                    GenTextureMipmaps(&f32.texture);
+                    SetTextureFilter(f32.texture, TEXTURE_FILTER_TRILINEAR);
+                    ui->font_canvas = f32;
+                } else {
+                    ui->font_canvas = f16;
+                }
+
+                GuiSetFont(ui->font_ui);
                 ui->has_custom_font = true;
                 break;
             }
@@ -222,8 +257,25 @@ void ui_workspace_Unload(WorkspaceUI *ui)
 {
     if (!ui) return;
     editor_clear_undo_history(ui);
-    if (ui->has_custom_font && ui->mono_font.texture.id != 0) {
-        UnloadFont(ui->mono_font);
+    if (ui->has_custom_font) {
+        unsigned int def_id = GetFontDefault().texture.id;
+        unsigned int m_id   = ui->mono_font.texture.id;
+        unsigned int u_id   = ui->font_ui.texture.id;
+        unsigned int s_id   = ui->font_sm.texture.id;
+        unsigned int c_id   = ui->font_canvas.texture.id;
+
+        if (c_id != 0 && c_id != def_id && c_id != m_id && c_id != u_id && c_id != s_id) {
+            UnloadFont(ui->font_canvas);
+        }
+        if (s_id != 0 && s_id != def_id && s_id != m_id && s_id != u_id) {
+            UnloadFont(ui->font_sm);
+        }
+        if (u_id != 0 && u_id != def_id && u_id != m_id) {
+            UnloadFont(ui->font_ui);
+        }
+        if (m_id != 0 && m_id != def_id) {
+            UnloadFont(ui->mono_font);
+        }
         ui->has_custom_font = false;
     }
 }
@@ -447,18 +499,18 @@ static void editor_ensure_cursor_visible(Font font, const char *code, WorkspaceU
 
     float cursor_y = (float)(line_num - 1) * CODE_LINE_H;
     float view_h   = editor_bounds.height - 20.0f;
-    if (cursor_y < ui->scroll_y) {
-        ui->scroll_y = cursor_y;
-    } else if (cursor_y + CODE_LINE_H > ui->scroll_y + view_h) {
-        ui->scroll_y = fmaxf(0.0f, cursor_y + CODE_LINE_H - view_h);
+    if (cursor_y < ui->target_scroll_y) {
+        ui->target_scroll_y = cursor_y;
+    } else if (cursor_y + CODE_LINE_H > ui->target_scroll_y + view_h) {
+        ui->target_scroll_y = fmaxf(0.0f, cursor_y + CODE_LINE_H - view_h);
     }
 
     float cursor_x = measure_line_prefix_width(font, code + line_start, cur - line_start, CODE_FONT_SIZE);
     float view_w   = editor_bounds.width - gutter_w - 28.0f;
-    if (cursor_x < ui->scroll_x) {
-        ui->scroll_x = fmaxf(0.0f, cursor_x - 24.0f);
-    } else if (cursor_x > ui->scroll_x + view_w) {
-        ui->scroll_x = cursor_x - view_w + 24.0f;
+    if (cursor_x < ui->target_scroll_x) {
+        ui->target_scroll_x = fmaxf(0.0f, cursor_x - 24.0f);
+    } else if (cursor_x > ui->target_scroll_x + view_w) {
+        ui->target_scroll_x = cursor_x - view_w + 24.0f;
     }
 }
 
@@ -576,7 +628,8 @@ static void update_and_draw_code_editor(
     Rectangle        editor_bounds
 )
 {
-    Font font = GuiGetFont();
+    Font font    = ui->mono_font;
+    Font ui_font = ui->font_ui;
     char *code = session->code_buffer;
     int code_len = (int)strlen(code);
 
@@ -586,7 +639,10 @@ static void update_and_draw_code_editor(
     if (ui->sel_active_pos < 0)        ui->sel_active_pos = 0;
 
     Vector2 mouse = GetMousePosition();
+    float terminal_top_y = (float)GetScreenHeight() - FOOTER_BAR_H - ui->terminal_anim_h;
+    bool over_terminal   = (ui->terminal_anim_h > 1.5f) && (mouse.y >= terminal_top_y);
     bool hovered = CheckCollisionPointRec(mouse, editor_bounds) &&
+                   !over_terminal &&
                    !ui->dropdown_edit_mode &&
                    !ui->dragging_v_split;
 
@@ -597,14 +653,19 @@ static void update_and_draw_code_editor(
         }
     }
 
-    /* Mouse wheel scrolling (vertical & horizontal with Shift) */
+    /* Smooth Mouse Wheel Scrolling (vertical, native horizontal, & Shift+wheel horizontal) */
     if (hovered) {
-        float wheel = GetMouseWheelMove();
-        if (wheel != 0.0f) {
+        Vector2 wheel_v = GetMouseWheelMoveV();
+        if (wheel_v.y != 0.0f || wheel_v.x != 0.0f) {
             if (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) {
-                ui->scroll_x = fmaxf(0.0f, ui->scroll_x - wheel * 42.0f);
+                ui->target_scroll_x = fmaxf(0.0f, ui->target_scroll_x - wheel_v.y * 56.0f);
             } else {
-                ui->scroll_y = fmaxf(0.0f, ui->scroll_y - wheel * CODE_LINE_H * 2.5f);
+                if (wheel_v.y != 0.0f) {
+                    ui->target_scroll_y = fmaxf(0.0f, ui->target_scroll_y - wheel_v.y * CODE_LINE_H * 3.5f);
+                }
+                if (wheel_v.x != 0.0f) {
+                    ui->target_scroll_x = fmaxf(0.0f, ui->target_scroll_x - wheel_v.x * 56.0f);
+                }
             }
         }
     }
@@ -664,33 +725,60 @@ static void update_and_draw_code_editor(
             ui->cursor_blink_timer = 0.0f;
 
             if (mouse.y < editor_bounds.y + 18.0f) {
-                ui->scroll_y = fmaxf(0.0f, ui->scroll_y - CODE_LINE_H * 0.35f);
+                ui->target_scroll_y = fmaxf(0.0f, ui->target_scroll_y - CODE_LINE_H * 0.45f);
             } else if (mouse.y > editor_bounds.y + editor_bounds.height - 18.0f) {
-                ui->scroll_y += CODE_LINE_H * 0.35f;
+                ui->target_scroll_y += CODE_LINE_H * 0.45f;
             }
         } else {
             ui->is_selecting_with_mouse = false;
         }
     }
 
-    /* Keyboard Editing, Undo/Redo, Word Navigation & Shortcuts */
+    /* Keyboard Editing, Fast Hold-to-Repeat Undo/Redo, PageUp/PageDown & Shortcuts */
     if (ui->has_focus) {
-        ui->cursor_blink_timer += GetFrameTime();
+        float dt_ed = GetFrameTime();
+        ui->cursor_blink_timer += dt_ed;
         bool ctrl   = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
         bool moved  = false;
         bool edited = false;
 
-        if (ctrl && IsKeyPressed(KEY_Z)) {
-            if (shift_down) {
-                editor_perform_redo(ui, code, MAX_CODE_SIZE);
+        /* PageUp / PageDown smooth viewport scroll */
+        if (IsKeyPressed(KEY_PAGE_UP) || IsKeyPressedRepeat(KEY_PAGE_UP)) {
+            ui->target_scroll_y = fmaxf(0.0f, ui->target_scroll_y - editor_bounds.height * 0.85f);
+        } else if (IsKeyPressed(KEY_PAGE_DOWN) || IsKeyPressedRepeat(KEY_PAGE_DOWN)) {
+            ui->target_scroll_y += editor_bounds.height * 0.85f;
+        }
+
+        /* Fast hold-to-repeat Ctrl+Z (Undo) and Ctrl+Y / Ctrl+Shift+Z (Redo) */
+        bool z_down = ctrl && IsKeyDown(KEY_Z);
+        bool y_down = ctrl && IsKeyDown(KEY_Y);
+        if (z_down || y_down) {
+            bool do_redo = y_down || shift_down;
+            if ((z_down && IsKeyPressed(KEY_Z)) || (y_down && IsKeyPressed(KEY_Y))) {
+                if (do_redo) editor_perform_redo(ui, code, MAX_CODE_SIZE);
+                else         editor_perform_undo(ui, code, MAX_CODE_SIZE);
+                ui->undo_hold_timer   = 0.0f;
+                ui->undo_repeat_accum = 0.0f;
+                moved = true;
             } else {
-                editor_perform_undo(ui, code, MAX_CODE_SIZE);
+                ui->undo_hold_timer += dt_ed;
+                if (ui->undo_hold_timer >= 0.25f) {
+                    float repeat_interval = (ui->undo_hold_timer >= 0.90f) ? 0.025f : 0.050f;
+                    ui->undo_repeat_accum += dt_ed;
+                    while (ui->undo_repeat_accum >= repeat_interval) {
+                        ui->undo_repeat_accum -= repeat_interval;
+                        if (do_redo) editor_perform_redo(ui, code, MAX_CODE_SIZE);
+                        else         editor_perform_undo(ui, code, MAX_CODE_SIZE);
+                        moved = true;
+                    }
+                }
             }
-            moved = true;
-        } else if (ctrl && IsKeyPressed(KEY_Y)) {
-            editor_perform_redo(ui, code, MAX_CODE_SIZE);
-            moved = true;
-        } else if (ctrl && IsKeyPressed(KEY_A)) {
+        } else {
+            ui->undo_hold_timer   = 0.0f;
+            ui->undo_repeat_accum = 0.0f;
+        }
+
+        if (ctrl && IsKeyPressed(KEY_A)) {
             ui->sel_anchor_pos = 0;
             ui->sel_active_pos = (int)strlen(code);
         } else if (ctrl && IsKeyPressed(KEY_C)) {
@@ -915,6 +1003,15 @@ static void update_and_draw_code_editor(
                       : session->snapshot.current_executing_line;
     bool is_error_line = (session->diagnostic.error_type != ERR_NONE);
 
+    /* Smooth scroll interpolation with integer settle */
+    float scroll_lerp = fminf(1.0f, GetFrameTime() * 18.0f);
+    if (ui->target_scroll_y < 0.0f) ui->target_scroll_y = 0.0f;
+    if (ui->target_scroll_x < 0.0f) ui->target_scroll_x = 0.0f;
+    ui->scroll_y += (ui->target_scroll_y - ui->scroll_y) * scroll_lerp;
+    ui->scroll_x += (ui->target_scroll_x - ui->scroll_x) * scroll_lerp;
+    if (fabsf(ui->target_scroll_y - ui->scroll_y) < 0.35f) ui->scroll_y = ui->target_scroll_y;
+    if (fabsf(ui->target_scroll_x - ui->scroll_x) < 0.35f) ui->scroll_x = ui->target_scroll_x;
+
     int total_len = (int)strlen(code);
     int sel_min = 0, sel_max = 0;
     editor_get_selection_range(ui, total_len, &sel_min, &sel_max);
@@ -954,7 +1051,14 @@ static void update_and_draw_code_editor(
             Color lnum_col = (session->state != STATE_IDLE && line_num == active_line)
                              ? (Color){ 245, 158, 11, 255 }
                              : (Color){ 100, 116, 139, 225 };
-            DrawTextEx(font, lnum_str, (Vector2){ editor_bounds.x + 10.0f, y + 2.0f }, 15.0f, 1.0f, lnum_col);
+            DrawTextEx(
+                ui_font,
+                lnum_str,
+                (Vector2){ floorf(editor_bounds.x + 10.0f + 0.5f), floorf(y + 2.0f + 0.5f) },
+                15.0f,
+                1.0f,
+                lnum_col
+            );
 
             /* 3. Clip code text area to the right of gutter */
             BeginScissorMode(
@@ -969,7 +1073,7 @@ static void update_and_draw_code_editor(
             memcpy(line_buf, code + idx, (size_t)llen);
             line_buf[llen] = '\0';
 
-            float draw_x = text_start_x - ui->scroll_x;
+            float draw_x = floorf(text_start_x - ui->scroll_x + 0.5f);
 
             /* 4. Visual Selection Highlight Rectangle */
             if (sel_max > sel_min && sel_max > idx && sel_min <= line_end) {
@@ -990,7 +1094,7 @@ static void update_and_draw_code_editor(
             }
 
             /* 5. Syntax-colored characters */
-            draw_syntax_colored_line(font, line_buf, (Vector2){ draw_x, y + 2.0f }, CODE_FONT_SIZE);
+            draw_syntax_colored_line(font, line_buf, (Vector2){ draw_x, floorf(y + 2.0f + 0.5f) }, CODE_FONT_SIZE);
 
             /* 6. Blinking caret at sel_active_pos */
             if (ui->has_focus && ui->sel_active_pos >= idx && ui->sel_active_pos <= line_end) {
@@ -1009,20 +1113,30 @@ static void update_and_draw_code_editor(
         line_num++;
     }
 
-    /* Subtle Horizontal & Vertical Scrollbars when content overflows */
-    float content_h = (float)line_num * CODE_LINE_H + 16.0f;
+    /* Clamp scroll targets & draw subtle Horizontal & Vertical Scrollbars */
+    float content_h    = (float)line_num * CODE_LINE_H + 24.0f;
+    float max_scroll_y = fmaxf(0.0f, content_h - editor_bounds.height);
+    if (ui->target_scroll_y > max_scroll_y) ui->target_scroll_y = max_scroll_y;
+    if (ui->scroll_y > max_scroll_y)        ui->scroll_y        = max_scroll_y;
+
     if (content_h > editor_bounds.height) {
         float sb_h = fmaxf(24.0f, (editor_bounds.height / content_h) * editor_bounds.height);
-        float sb_y = editor_bounds.y + (ui->scroll_y / (content_h - editor_bounds.height)) * (editor_bounds.height - sb_h);
+        float ratio_y = (max_scroll_y > 0.0f) ? (ui->scroll_y / max_scroll_y) : 0.0f;
+        float sb_y = editor_bounds.y + ratio_y * (editor_bounds.height - sb_h);
         DrawRectangleRounded(
             (Rectangle){ editor_bounds.x + editor_bounds.width - 6.0f, sb_y, 4.0f, sb_h },
             0.5f, 4, (Color){ 100, 116, 139, 130 }
         );
     }
-    float view_w = editor_bounds.width - gutter_w - 16.0f;
+    float view_w       = editor_bounds.width - gutter_w - 16.0f;
+    float max_scroll_x = fmaxf(0.0f, max_line_w + 40.0f - view_w);
+    if (ui->target_scroll_x > max_scroll_x) ui->target_scroll_x = max_scroll_x;
+    if (ui->scroll_x > max_scroll_x)        ui->scroll_x        = max_scroll_x;
+
     if (max_line_w > view_w) {
         float sb_w = fmaxf(28.0f, (view_w / (max_line_w + 40.0f)) * view_w);
-        float sb_x = editor_bounds.x + gutter_w + (ui->scroll_x / (max_line_w + 40.0f - view_w)) * (view_w - sb_w);
+        float ratio_x = (max_scroll_x > 0.0f) ? (ui->scroll_x / max_scroll_x) : 0.0f;
+        float sb_x = editor_bounds.x + gutter_w + ratio_x * (view_w - sb_w);
         DrawRectangleRounded(
             (Rectangle){ sb_x, editor_bounds.y + editor_bounds.height - 6.0f, sb_w, 4.0f },
             0.5f, 4, (Color){ 100, 116, 139, 130 }
@@ -1059,7 +1173,7 @@ static void draw_multiline_log(Font font, const char *text, Rectangle bounds, fl
             } else if (strstr(line, "warning:") != NULL || strstr(line, "Nota:") != NULL) {
                 lcol = (Color){ 250, 204, 21, 255 };
             }
-            DrawTextEx(font, line, (Vector2){ bounds.x, y }, font_size, 1.0f, lcol);
+            DrawTextEx(font, line, (Vector2){ floorf(bounds.x + 0.5f), floorf(y + 0.5f) }, font_size, 1.0f, lcol);
         }
 
         y += font_size + 5.0f;
@@ -1073,7 +1187,8 @@ static void draw_retractable_terminal(
     WorkspaceUI     *ui,
     float            sw,
     float            footer_top_y,
-    Font             font
+    Font             font_ui,
+    Font             font_sm
 )
 {
     float dt = GetFrameTime();
@@ -1084,61 +1199,99 @@ static void draw_retractable_terminal(
         return;
     }
 
+    float anim_h = floorf(ui->terminal_anim_h + 0.5f);
     Rectangle drawer = {
         0.0f,
-        footer_top_y - ui->terminal_anim_h,
+        footer_top_y - anim_h,
         sw,
-        ui->terminal_anim_h
+        anim_h
     };
     Vector2 mouse = GetMousePosition();
     if (CheckCollisionPointRec(mouse, drawer)) {
         float wheel = GetMouseWheelMove();
         if (wheel != 0.0f) {
-            ui->terminal_scroll_y = fmaxf(0.0f, ui->terminal_scroll_y - wheel * 28.0f);
+            ui->terminal_target_scroll_y = fmaxf(0.0f, ui->terminal_target_scroll_y - wheel * 42.0f);
         }
+    }
+    float t_lerp = fminf(1.0f, dt * 18.0f);
+    ui->terminal_scroll_y += (ui->terminal_target_scroll_y - ui->terminal_scroll_y) * t_lerp;
+    if (fabsf(ui->terminal_target_scroll_y - ui->terminal_scroll_y) < 0.35f) {
+        ui->terminal_scroll_y = ui->terminal_target_scroll_y;
     }
 
     /* Drawer Surface & Top Border */
     DrawRectangleRec(drawer, (Color){ 15, 17, 26, 248 });
     DrawLineEx((Vector2){ 0.0f, drawer.y }, (Vector2){ sw, drawer.y }, 1.5f, (Color){ 56, 189, 248, 200 });
 
-    /* Drawer Header Bar with Tabs */
+    /* Drawer Header Bar with Dynamically Sized Tabs */
     Rectangle hdr = { drawer.x, drawer.y, drawer.width, 32.0f };
     DrawRectangleRec(hdr, (Color){ 22, 25, 37, 255 });
     DrawLineEx((Vector2){ 0.0f, hdr.y + hdr.height }, (Vector2){ sw, hdr.y + hdr.height }, 1.0f, (Color){ 42, 48, 71, 255 });
 
-    /* Tab 0: Diagnóstico & Compilador (GCC / ASan) */
-    Rectangle tab0 = { 12.0f, hdr.y + 4.0f, 265.0f, 24.0f };
+    const float tab_fs  = 13.0f;
+    const float tab_pad = 24.0f;
+
+    /* Tab 0: Diagnóstico & Compilador (GCC/ASan) */
+    const char *t0_lbl = "Diagnóstico & Compilador (GCC/ASan)";
+    Vector2 t0_sz = MeasureTextEx(font_sm, t0_lbl, tab_fs, 1.0f);
+    Rectangle tab0 = { 12.0f, hdr.y + 4.0f, floorf(t0_sz.x + tab_pad), 24.0f };
     bool hov0 = CheckCollisionPointRec(mouse, tab0);
     DrawRectangleRounded(tab0, 0.25f, 4, (ui->terminal_active_tab == 0) ? (Color){ 31, 36, 55, 255 } : (Color){ 22, 25, 37, 255 });
     DrawRectangleRoundedLinesEx(tab0, 0.25f, 4, 1.0f, (ui->terminal_active_tab == 0) ? (Color){ 56, 189, 248, 255 } : (Color){ 42, 48, 71, 255 });
-    DrawTextEx(font, "Diagnóstico & Compilador (GCC/ASan)", (Vector2){ tab0.x + 10.0f, tab0.y + 5.0f }, 13.0f, 1.0f,
-               (ui->terminal_active_tab == 0 || hov0) ? (Color){ 226, 232, 240, 255 } : (Color){ 100, 116, 139, 255 });
+    DrawTextEx(
+        font_sm,
+        t0_lbl,
+        (Vector2){ floorf(tab0.x + (tab0.width - t0_sz.x) * 0.5f + 0.5f), floorf(tab0.y + (tab0.height - t0_sz.y) * 0.5f + 0.5f) },
+        tab_fs,
+        1.0f,
+        (ui->terminal_active_tab == 0 || hov0) ? (Color){ 226, 232, 240, 255 } : (Color){ 100, 116, 139, 255 }
+    );
     if (hov0 && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
-        ui->terminal_active_tab = 0;
-        ui->terminal_scroll_y   = 0.0f;
+        ui->terminal_active_tab      = 0;
+        ui->terminal_scroll_y        = 0.0f;
+        ui->terminal_target_scroll_y = 0.0f;
     }
 
-    /* Tab 1: Saída do Programa (stdout / printf) */
-    Rectangle tab1 = { 286.0f, hdr.y + 4.0f, 250.0f, 24.0f };
+    /* Tab 1: Saída do Programa (stdout / printf) — fixed width for max label so dot never shifts layout */
+    const char *t1_max_lbl = "● Saída do Programa (stdout / printf)";
+    const char *t1_lbl     = session->has_new_stdout ? t1_max_lbl : "Saída do Programa (stdout / printf)";
+    Vector2 t1_max_sz = MeasureTextEx(font_sm, t1_max_lbl, tab_fs, 1.0f);
+    Vector2 t1_sz     = MeasureTextEx(font_sm, t1_lbl, tab_fs, 1.0f);
+    Rectangle tab1 = { tab0.x + tab0.width + 8.0f, hdr.y + 4.0f, floorf(t1_max_sz.x + tab_pad), 24.0f };
     bool hov1 = CheckCollisionPointRec(mouse, tab1);
     DrawRectangleRounded(tab1, 0.25f, 4, (ui->terminal_active_tab == 1) ? (Color){ 31, 36, 55, 255 } : (Color){ 22, 25, 37, 255 });
     DrawRectangleRoundedLinesEx(tab1, 0.25f, 4, 1.0f, (ui->terminal_active_tab == 1) ? (Color){ 16, 185, 129, 255 } : (Color){ 42, 48, 71, 255 });
-    const char *t1_lbl = session->has_new_stdout ? "● Saída do Programa (stdout / printf)" : "Saída do Programa (stdout / printf)";
-    DrawTextEx(font, t1_lbl, (Vector2){ tab1.x + 10.0f, tab1.y + 5.0f }, 13.0f, 1.0f,
-               (ui->terminal_active_tab == 1 || hov1) ? (Color){ 226, 232, 240, 255 } :
-               (session->has_new_stdout ? (Color){ 52, 211, 153, 255 } : (Color){ 100, 116, 139, 255 }));
+    DrawTextEx(
+        font_sm,
+        t1_lbl,
+        (Vector2){ floorf(tab1.x + (tab1.width - t1_sz.x) * 0.5f + 0.5f), floorf(tab1.y + (tab1.height - t1_sz.y) * 0.5f + 0.5f) },
+        tab_fs,
+        1.0f,
+        (ui->terminal_active_tab == 1 || hov1) ? (Color){ 226, 232, 240, 255 } :
+        (session->has_new_stdout ? (Color){ 52, 211, 153, 255 } : (Color){ 100, 116, 139, 255 })
+    );
     if (hov1 && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
-        ui->terminal_active_tab = 1;
-        ui->terminal_scroll_y   = 0.0f;
-        session->has_new_stdout = false;
+        ui->terminal_active_tab      = 1;
+        ui->terminal_scroll_y        = 0.0f;
+        ui->terminal_target_scroll_y = 0.0f;
+        session->has_new_stdout      = false;
     }
 
     /* Close Button [ ✕ Ocultar ▼ ] */
-    Rectangle btn_close = { sw - 110.0f, hdr.y + 4.0f, 98.0f, 24.0f };
+    const char *close_lbl = "✕ Ocultar ▼";
+    Vector2 close_sz = MeasureTextEx(font_sm, close_lbl, tab_fs, 1.0f);
+    float close_w = floorf(close_sz.x + 20.0f);
+    Rectangle btn_close = { floorf(sw - close_w - 12.0f), hdr.y + 4.0f, close_w, 24.0f };
     bool hov_close = CheckCollisionPointRec(mouse, btn_close);
     DrawRectangleRounded(btn_close, 0.25f, 4, hov_close ? (Color){ 40, 46, 71, 255 } : (Color){ 31, 36, 55, 255 });
-    DrawTextEx(font, "✕ Ocultar ▼", (Vector2){ btn_close.x + 10.0f, btn_close.y + 5.0f }, 13.0f, 1.0f, (Color){ 226, 232, 240, 255 });
+    DrawTextEx(
+        font_sm,
+        close_lbl,
+        (Vector2){ floorf(btn_close.x + (btn_close.width - close_sz.x) * 0.5f + 0.5f), floorf(btn_close.y + (btn_close.height - close_sz.y) * 0.5f + 0.5f) },
+        tab_fs,
+        1.0f,
+        (Color){ 226, 232, 240, 255 }
+    );
     if (hov_close && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
         ui->terminal_open = false;
     }
@@ -1157,25 +1310,39 @@ static void draw_retractable_terminal(
         Color tcol = (session->diagnostic.error_type != ERR_NONE)
                      ? (Color){ 251, 113, 133, 255 }
                      : (Color){ 56, 189, 248, 255 };
-        DrawTextEx(font, session->diagnostic.pedagogical_title, (Vector2){ content.x, content.y - ui->terminal_scroll_y }, 15.0f, 1.0f, tcol);
-        DrawTextEx(font, session->diagnostic.pedagogical_explanation, (Vector2){ content.x, content.y + 22.0f - ui->terminal_scroll_y }, 14.0f, 1.0f, (Color){ 226, 232, 240, 255 });
+        DrawTextEx(
+            font_ui,
+            session->diagnostic.pedagogical_title,
+            (Vector2){ floorf(content.x + 0.5f), floorf(content.y - ui->terminal_scroll_y + 0.5f) },
+            15.0f,
+            1.0f,
+            tcol
+        );
+        DrawTextEx(
+            font_sm,
+            session->diagnostic.pedagogical_explanation,
+            (Vector2){ floorf(content.x + 0.5f), floorf(content.y + 22.0f - ui->terminal_scroll_y + 0.5f) },
+            13.0f,
+            1.0f,
+            (Color){ 226, 232, 240, 255 }
+        );
 
         const char *raw_log = session->diagnostic.raw_compiler_log[0]
                               ? session->diagnostic.raw_compiler_log
                               : (session->stderr_buf[0] ? session->stderr_buf : "Nenhum erro ou warning emitido pelo GCC / AddressSanitizer.");
-        Rectangle raw_rect = { content.x, content.y + 50.0f, content.width, content.height - 50.0f };
-        draw_multiline_log(font, raw_log, raw_rect, ui->terminal_scroll_y, 13.0f, (Color){ 148, 163, 184, 245 });
+        Rectangle raw_rect = { content.x, content.y + 48.0f, content.width, content.height - 48.0f };
+        draw_multiline_log(font_sm, raw_log, raw_rect, ui->terminal_scroll_y, 13.0f, (Color){ 148, 163, 184, 245 });
     } else {
         session->has_new_stdout = false;
         const char *out_txt = session->program_stdout[0]
                               ? session->program_stdout
                               : "(Nenhuma saída impressa em stdout ainda. Use printf(\"Valor = %d\\n\", x); no seu código C!)";
         draw_multiline_log(
-            font,
+            font_sm,
             out_txt,
             content,
             ui->terminal_scroll_y,
-            14.0f,
+            13.0f,
             session->program_stdout[0] ? (Color){ 167, 243, 208, 255 } : (Color){ 100, 116, 139, 240 }
         );
     }
@@ -1203,9 +1370,10 @@ void ui_workspace_update_and_draw(DebuggerSession *session, WorkspaceUI *ui)
 
     /* Automatically pop open the Retractable Terminal when a compile/runtime error occurs */
     if (prev_err == ERR_NONE && session->diagnostic.error_type != ERR_NONE) {
-        ui->terminal_open       = true;
-        ui->terminal_active_tab = 0;
-        ui->terminal_scroll_y   = 0.0f;
+        ui->terminal_open            = true;
+        ui->terminal_active_tab      = 0;
+        ui->terminal_scroll_y        = 0.0f;
+        ui->terminal_target_scroll_y = 0.0f;
     }
 
     /* 2. Exponential Playback Speed (0.05x to 100.0x) & Auto-Play Stepper */
@@ -1260,7 +1428,7 @@ void ui_workspace_update_and_draw(DebuggerSession *session, WorkspaceUI *ui)
     DrawRectangleRec(left_panel, (Color){ 22, 25, 37, 255 });
 
     /* Reset Template Button [ ↺ Resetar ] next to Template Dropdown */
-    float reset_w = 88.0f;
+    float reset_w = floorf(MeasureTextEx(font, "↺ Resetar", fs, 1.0f).x + 22.0f);
     Rectangle reset_btn = { left_panel.x + left_panel.width - reset_w - 8.0f, 8.0f, reset_w, 28.0f };
     if (GuiButton(reset_btn, "↺ Resetar")) {
         gdb_stop_session(session);
@@ -1271,8 +1439,10 @@ void ui_workspace_update_and_draw(DebuggerSession *session, WorkspaceUI *ui)
         int len = (int)strlen(session->code_buffer);
         ui->sel_anchor_pos = len;
         ui->sel_active_pos = len;
-        ui->scroll_y = 0.0f;
-        ui->scroll_x = 0.0f;
+        ui->scroll_y        = 0.0f;
+        ui->scroll_x        = 0.0f;
+        ui->target_scroll_y = 0.0f;
+        ui->target_scroll_x = 0.0f;
         editor_push_undo(ui, session->code_buffer);
     }
 
@@ -1292,7 +1462,7 @@ void ui_workspace_update_and_draw(DebuggerSession *session, WorkspaceUI *ui)
     DrawRectangleRec(v_splitter, v_col);
 
     /* --- RETRACTABLE TERMINAL DRAWER (Slides up above Footer Bar) --- */
-    draw_retractable_terminal(session, ui, sw, footer_bar.y, font);
+    draw_retractable_terminal(session, ui, sw, footer_bar.y, ui->font_ui, ui->font_sm);
 
     /* --- FOOTER BAR: PROGRESSIVE DISCLOSURE PLAYBACK + STATUS SUMMARY PILL --- */
     DrawRectangleRec(footer_bar, (Color){ 22, 25, 37, 255 });
@@ -1416,11 +1586,12 @@ void ui_workspace_update_and_draw(DebuggerSession *session, WorkspaceUI *ui)
     }
 
     BeginScissorMode((int)status_pill.x + 6, (int)status_pill.y, (int)status_pill.width - 12, (int)status_pill.height);
+    Vector2 status_sz = MeasureTextEx(ui->font_sm, status_msg, 13.0f, 1.0f);
     DrawTextEx(
-        font,
+        ui->font_sm,
         status_msg,
-        (Vector2){ status_pill.x + 10.0f, status_pill.y + 6.5f },
-        13.5f,
+        (Vector2){ floorf(status_pill.x + 10.0f + 0.5f), floorf(status_pill.y + (status_pill.height - status_sz.y) * 0.5f + 0.5f) },
+        13.0f,
         1.0f,
         has_alert ? (Color){ 254, 205, 211, 255 } : dot_col
     );
@@ -1466,8 +1637,10 @@ void ui_workspace_update_and_draw(DebuggerSession *session, WorkspaceUI *ui)
             int len = (int)strlen(session->code_buffer);
             ui->sel_anchor_pos = len;
             ui->sel_active_pos = len;
-            ui->scroll_y = 0.0f;
-            ui->scroll_x = 0.0f;
+            ui->scroll_y        = 0.0f;
+            ui->scroll_x        = 0.0f;
+            ui->target_scroll_y = 0.0f;
+            ui->target_scroll_x = 0.0f;
             editor_clear_undo_history(ui);
             editor_push_undo(ui, session->code_buffer);
         }

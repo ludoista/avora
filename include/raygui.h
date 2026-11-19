@@ -2,6 +2,7 @@
 #define RAYGUI_H
 
 #include <raylib.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -191,7 +192,8 @@ static void GuiDrawTextCentered(const char *text, Rectangle bounds, Color color,
         pos.x = bounds.x + (bounds.width - size.x) * 0.5f;
         if (pos.x < bounds.x + 4.0f) pos.x = bounds.x + 4.0f;
     }
-    pos.y = bounds.y + (bounds.height - size.y) * 0.5f;
+    pos.x = floorf(pos.x + 0.5f);
+    pos.y = floorf(bounds.y + (bounds.height - size.y) * 0.5f + 0.5f);
     DrawTextEx(guiFont, text, pos, fontSize, spacing, color);
 }
 
@@ -252,7 +254,11 @@ int GuiButton(Rectangle bounds, const char *text)
 
     DrawRectangleRounded(bounds, 0.24f, 6, base);
     DrawRectangleRoundedLinesEx(bounds, 0.24f, 6, 1.2f, border);
-    GuiDrawTextCentered(text, bounds, txtCol, false);
+    if (bounds.width > 6.0f && bounds.height > 4.0f) {
+        BeginScissorMode((int)bounds.x + 2, (int)bounds.y, (int)bounds.width - 4, (int)bounds.height);
+        GuiDrawTextCentered(text, bounds, txtCol, false);
+        EndScissorMode();
+    }
 
     return pressed;
 }
@@ -285,7 +291,11 @@ int GuiPrimaryButton(Rectangle bounds, const char *text)
 
     DrawRectangleRounded(bounds, 0.24f, 6, base);
     DrawRectangleRoundedLinesEx(bounds, 0.24f, 6, 1.3f, border);
-    GuiDrawTextCentered(text, bounds, txtCol, false);
+    if (bounds.width > 6.0f && bounds.height > 4.0f) {
+        BeginScissorMode((int)bounds.x + 2, (int)bounds.y, (int)bounds.width - 4, (int)bounds.height);
+        GuiDrawTextCentered(text, bounds, txtCol, false);
+        EndScissorMode();
+    }
 
     return pressed;
 }

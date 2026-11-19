@@ -13,9 +13,9 @@
 #include <raylib.h>
 #include <raymath.h>
 
-#define AVORA_VERSION "3.0.0"
+#define AVORA_VERSION "3.0.1"
 #define AVORA_WINDOW_TITLE \
-    "AVORA v3.0 — Analisador Visual de Operações e Rastreamento de Árvores (Algoritmos & Estruturas de Dados)"
+    "AVORA v3.0.1 — Analisador Visual de Operações e Rastreamento de Árvores (Algoritmos & Estruturas de Dados)"
 
 #define MAX_TREE_NODES       256
 #define MAX_FOREST_ROOTS     16
@@ -28,7 +28,7 @@
 #define MAX_TEST_INPUT       512
 #define SNAPSHOT_BUF_SIZE    16384
 #define MAX_STDOUT_SIZE      16384
-#define MAX_UNDO_HISTORY     48
+#define MAX_UNDO_HISTORY     128
 #define WATCHDOG_TIMEOUT_SEC 1.5
 #define PRESET_COUNT         18
 
@@ -253,6 +253,10 @@ typedef struct {
     bool             is_selecting_with_mouse;
     float            scroll_y;
     float            scroll_x;
+    float            target_scroll_y;
+    float            target_scroll_x;
+    float            undo_hold_timer;
+    float            undo_repeat_accum;
     bool             has_focus;
     float            cursor_blink_timer;
 
@@ -284,8 +288,9 @@ typedef struct {
     /* Retractable Bottom Terminal Drawer (GCC/ASan Diagnostics & Program stdout) */
     bool             terminal_open;
     int              terminal_active_tab;    /* 0 = Diagnóstico / GCC / ASan, 1 = Saída (stdout / printf) */
-    float            terminal_anim_h;        /* Smooth height animation [0 .. 225px] */
+    float            terminal_anim_h;        /* Smooth height animation [0 .. 215px] */
     float            terminal_scroll_y;
+    float            terminal_target_scroll_y;
 
     /* Animated Pedagogical "Blob" Mascot & Interactive Decision Tree */
     BlobHintTopic    active_blob_topic;
@@ -304,7 +309,10 @@ typedef struct {
     bool             blob_error_dismissed;
     ErrorType        last_seen_error_type;
     float            pulse_timer;
-    Font             mono_font;
+    Font             mono_font;    /* 16px 1:1 — Code Editor */
+    Font             font_ui;      /* 15px 1:1 — RayGUI controls, titles, gutter */
+    Font             font_sm;      /* 13px 1:1 — HUD, Terminal tabs/logs, Blob, Status */
+    Font             font_canvas;  /* 32px + Mipmaps (Trilinear) — Zoomed 2D World */
     bool             has_custom_font;
 } WorkspaceUI;
 

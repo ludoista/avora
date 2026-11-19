@@ -628,16 +628,16 @@ static bool draw_Observability_hud(
     const TreeSnapshot *snap = &session->snapshot;
     Vector2 mouse = GetMousePosition();
 
-    float hud_x = canvas_bounds.x + 14.0f;
-    float hud_y = canvas_bounds.y + 14.0f;
-    float hud_w = fminf(300.0f, canvas_bounds.width * 0.44f);
+    float hud_x = floorf(canvas_bounds.x + 14.0f + 0.5f);
+    float hud_y = floorf(canvas_bounds.y + 14.0f + 0.5f);
+    float hud_w = floorf(fminf(300.0f, canvas_bounds.width * 0.44f));
     float hdr_h = 30.0f;
 
     int total_vars = snap->local_var_count + snap->scalar_var_count;
     int frame_rows = (snap->frame_count > 0) ? (snap->frame_count > 5 ? 5 : snap->frame_count) : 1;
     int var_rows   = (total_vars > 0) ? (total_vars > 9 ? 9 : total_vars) : 1;
 
-    float body_h = ui->hud_collapsed ? 0.0f : (46.0f + (float)(frame_rows + var_rows) * 19.5f);
+    float body_h = ui->hud_collapsed ? 0.0f : (48.0f + (float)(frame_rows + var_rows) * 20.0f);
     Rectangle hud_rect = { hud_x, hud_y, hud_w, hdr_h + body_h };
     Rectangle hdr_rect = { hud_x, hud_y, hud_w, hdr_h };
 
@@ -669,8 +669,8 @@ static bool draw_Observability_hud(
     DrawTextEx(
         font,
         hdr_txt,
-        (Vector2){ hdr_rect.x + 10.0f, hdr_rect.y + 7.0f },
-        14.0f,
+        (Vector2){ floorf(hdr_rect.x + 10.0f + 0.5f), floorf(hdr_rect.y + 8.0f + 0.5f) },
+        13.0f,
         1.0f,
         hdr_hover ? (Color){ 56, 189, 248, 255 } : (Color){ 226, 232, 240, 255 }
     );
@@ -678,7 +678,7 @@ static bool draw_Observability_hud(
     if (ui->hud_collapsed) return mouse_over_hud;
 
     BeginScissorMode((int)hud_rect.x + 2, (int)(hud_rect.y + hdr_h), (int)hud_rect.width - 4, (int)body_h - 4);
-    float y = hud_rect.y + hdr_h + 4.0f;
+    float y = floorf(hud_rect.y + hdr_h + 4.0f + 0.5f);
 
     /* Section 1: Call Stack */
     DrawLineEx((Vector2){ hud_x + 8.0f, y }, (Vector2){ hud_x + hud_w - 8.0f, y }, 1.0f, (Color){ 42, 48, 71, 255 });
@@ -690,7 +690,7 @@ static bool draw_Observability_hud(
         char f0[96];
         snprintf(f0, sizeof(f0), "#0 %s() : Linha %d", snap->current_func[0] ? snap->current_func : "main", snap->current_executing_line);
         DrawTextEx(font, f0, (Vector2){ hud_x + 12.0f, y }, 13.0f, 1.0f, (Color){ 245, 158, 11, 255 });
-        y += 19.5f;
+        y += 20.0f;
     } else {
         for (int f = 0; f < frame_rows; f++) {
             const StackFrameInfo *sf = &snap->frames[f];
@@ -698,10 +698,10 @@ static bool draw_Observability_hud(
             snprintf(fline, sizeof(fline), "#%d %s()  L%d", sf->level, sf->func, sf->line);
             Color fcol = (f == 0) ? (Color){ 245, 158, 11, 255 } : (Color){ 148, 163, 184, 240 };
             if (f == 0) {
-                DrawRectangleRounded((Rectangle){ hud_x + 8.0f, y - 1.0f, hud_w - 16.0f, 18.0f }, 0.25f, 4, Fade((Color){ 245, 158, 11, 255 }, 0.14f));
+                DrawRectangleRounded((Rectangle){ hud_x + 8.0f, y - 2.0f, hud_w - 16.0f, 18.0f }, 0.25f, 4, Fade((Color){ 245, 158, 11, 255 }, 0.14f));
             }
             DrawTextEx(font, fline, (Vector2){ hud_x + 12.0f, y }, 13.0f, 1.0f, fcol);
-            y += 19.5f;
+            y += 20.0f;
         }
     }
 
@@ -720,7 +720,7 @@ static bool draw_Observability_hud(
         for (int i = 0; i < snap->local_var_count && drawn_vars < 9; i++) {
             const LocalPointerVar *lv = &snap->local_vars[i];
             if (lv->changed) {
-                DrawRectangleRounded((Rectangle){ hud_x + 8.0f, y - 1.0f, hud_w - 16.0f, 18.0f }, 0.25f, 4, Fade((Color){ 245, 158, 11, 255 }, 0.18f));
+                DrawRectangleRounded((Rectangle){ hud_x + 8.0f, y - 2.0f, hud_w - 16.0f, 18.0f }, 0.25f, 4, Fade((Color){ 245, 158, 11, 255 }, 0.18f));
             }
             char vline[128];
             if (lv->is_null) {
@@ -733,7 +733,7 @@ static bool draw_Observability_hud(
             Color vcol = lv->changed ? (Color){ 245, 158, 11, 255 } :
                          (lv->is_null ? (Color){ 100, 116, 139, 240 } : (Color){ 56, 189, 248, 255 });
             DrawTextEx(font, vline, (Vector2){ hud_x + 12.0f, y }, 13.0f, 1.0f, vcol);
-            y += 19.5f;
+            y += 20.0f;
             drawn_vars++;
         }
 
@@ -741,13 +741,13 @@ static bool draw_Observability_hud(
         for (int i = 0; i < snap->scalar_var_count && drawn_vars < 9; i++) {
             const LocalScalarVar *sv = &snap->scalar_vars[i];
             if (sv->changed) {
-                DrawRectangleRounded((Rectangle){ hud_x + 8.0f, y - 1.0f, hud_w - 16.0f, 18.0f }, 0.25f, 4, Fade((Color){ 245, 158, 11, 255 }, 0.18f));
+                DrawRectangleRounded((Rectangle){ hud_x + 8.0f, y - 2.0f, hud_w - 16.0f, 18.0f }, 0.25f, 4, Fade((Color){ 245, 158, 11, 255 }, 0.18f));
             }
             char sline[128];
             snprintf(sline, sizeof(sline), "%s%s = %s", sv->changed ? "● " : "", sv->name, sv->value_str);
             Color scol = sv->changed ? (Color){ 245, 158, 11, 255 } : (Color){ 226, 232, 240, 255 };
             DrawTextEx(font, sline, (Vector2){ hud_x + 12.0f, y }, 13.0f, 1.0f, scol);
-            y += 19.5f;
+            y += 20.0f;
             drawn_vars++;
         }
     }
@@ -770,9 +770,10 @@ static bool draw_floating_camera_pill(
     Vector2 mouse = GetMousePosition();
     float pill_w = 186.0f;
     float pill_h = 32.0f;
+    float visible_bottom = canvas_bounds.y + canvas_bounds.height - ui->terminal_anim_h;
     Rectangle pill = {
         canvas_bounds.x + 14.0f,
-        canvas_bounds.y + canvas_bounds.height - pill_h - 14.0f,
+        fmaxf(canvas_bounds.y + 14.0f, floorf(visible_bottom - pill_h - 14.0f + 0.5f)),
         pill_w,
         pill_h
     };
@@ -794,7 +795,15 @@ static bool draw_floating_camera_pill(
                      : (hov_focus ? (Color){ 40, 46, 71, 255 } : (Color){ 31, 36, 55, 255 });
     Color focus_fg = ui->camera_auto_focus ? (Color){ 15, 17, 26, 255 } : (Color){ 226, 232, 240, 255 };
     DrawRectangleRounded(btn_focus, 0.35f, 6, focus_bg);
-    DrawTextEx(font, "Auto", (Vector2){ btn_focus.x + 7.0f, btn_focus.y + 5.0f }, 13.0f, 1.0f, focus_fg);
+    Vector2 fsz = MeasureTextEx(font, "Auto", 13.0f, 1.0f);
+    DrawTextEx(
+        font,
+        "Auto",
+        (Vector2){ floorf(btn_focus.x + (btn_focus.width - fsz.x) * 0.5f + 0.5f), floorf(btn_focus.y + (btn_focus.height - fsz.y) * 0.5f + 0.5f) },
+        13.0f,
+        1.0f,
+        focus_fg
+    );
     if (hov_focus && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
         ui->camera_auto_focus = !ui->camera_auto_focus;
         if (ui->camera_auto_focus) {
@@ -813,7 +822,15 @@ static bool draw_floating_camera_pill(
     Rectangle btn_minus = { pill.x + 58.0f, pill.y + 4.0f, 26.0f, pill_h - 8.0f };
     bool hov_minus = CheckCollisionPointRec(mouse, btn_minus);
     DrawRectangleRounded(btn_minus, 0.35f, 4, hov_minus ? (Color){ 40, 46, 71, 255 } : (Color){ 31, 36, 55, 255 });
-    DrawTextEx(font, "-", (Vector2){ btn_minus.x + 9.0f, btn_minus.y + 4.0f }, 15.0f, 1.0f, (Color){ 226, 232, 240, 255 });
+    Vector2 msz = MeasureTextEx(font, "-", 13.0f, 1.0f);
+    DrawTextEx(
+        font,
+        "-",
+        (Vector2){ floorf(btn_minus.x + (btn_minus.width - msz.x) * 0.5f + 0.5f), floorf(btn_minus.y + (btn_minus.height - msz.y) * 0.5f + 0.5f) },
+        13.0f,
+        1.0f,
+        (Color){ 226, 232, 240, 255 }
+    );
     if (hov_minus && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
         ui->camera_auto_focus = false;
         ui->camera.zoom = fmaxf(0.30f, ui->camera.zoom - 0.15f);
@@ -831,7 +848,7 @@ static bool draw_floating_camera_pill(
     DrawTextEx(
         font,
         ztxt,
-        (Vector2){ btn_pct.x + (btn_pct.width - zsz.x) * 0.5f, btn_pct.y + 5.0f },
+        (Vector2){ floorf(btn_pct.x + (btn_pct.width - zsz.x) * 0.5f + 0.5f), floorf(btn_pct.y + (btn_pct.height - zsz.y) * 0.5f + 0.5f) },
         13.0f,
         1.0f,
         (Color){ 226, 232, 240, 255 }
@@ -846,7 +863,15 @@ static bool draw_floating_camera_pill(
     Rectangle btn_plus = { pill.x + 154.0f, pill.y + 4.0f, 26.0f, pill_h - 8.0f };
     bool hov_plus = CheckCollisionPointRec(mouse, btn_plus);
     DrawRectangleRounded(btn_plus, 0.35f, 4, hov_plus ? (Color){ 40, 46, 71, 255 } : (Color){ 31, 36, 55, 255 });
-    DrawTextEx(font, "+", (Vector2){ btn_plus.x + 8.0f, btn_plus.y + 4.0f }, 15.0f, 1.0f, (Color){ 226, 232, 240, 255 });
+    Vector2 psz = MeasureTextEx(font, "+", 13.0f, 1.0f);
+    DrawTextEx(
+        font,
+        "+",
+        (Vector2){ floorf(btn_plus.x + (btn_plus.width - psz.x) * 0.5f + 0.5f), floorf(btn_plus.y + (btn_plus.height - psz.y) * 0.5f + 0.5f) },
+        13.0f,
+        1.0f,
+        (Color){ 226, 232, 240, 255 }
+    );
     if (hov_plus && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
         ui->camera_auto_focus = false;
         ui->camera.zoom = fminf(2.60f, ui->camera.zoom + 0.15f);
@@ -895,7 +920,7 @@ static void draw_wrapped_bubble_text(Font font, const char *text, Rectangle boun
                 y += font_size + 4.0f;
             }
             if (y + font_size <= bounds.y + bounds.height) {
-                DrawTextEx(font, word, (Vector2){ x, y }, font_size, 1.0f, color);
+                DrawTextEx(font, word, (Vector2){ floorf(x + 0.5f), floorf(y + 0.5f) }, font_size, 1.0f, color);
             }
             x += wsz.x + space_w;
             word = strtok_r(NULL, " ", &save_word);
@@ -913,8 +938,15 @@ static bool draw_blob_choice_btn(Rectangle bounds, const char *label, Font font,
     Color bd = hov ? accent : (Color){ 42, 48, 71, 255 };
     DrawRectangleRounded(bounds, 0.28f, 6, bg);
     DrawRectangleRoundedLinesEx(bounds, 0.28f, 6, 1.2f, bd);
-    DrawTextEx(font, label, (Vector2){ bounds.x + 10.0f, bounds.y + 5.0f }, 13.0f, 1.0f,
-               hov ? (Color){ 255, 255, 255, 255 } : (Color){ 226, 232, 240, 255 });
+    Vector2 tsz = MeasureTextEx(font, label, 13.0f, 1.0f);
+    DrawTextEx(
+        font,
+        label,
+        (Vector2){ floorf(bounds.x + 10.0f + 0.5f), floorf(bounds.y + (bounds.height - tsz.y) * 0.5f + 0.5f) },
+        13.0f,
+        1.0f,
+        hov ? (Color){ 255, 255, 255, 255 } : (Color){ 226, 232, 240, 255 }
+    );
     return (hov && IsMouseButtonReleased(MOUSE_LEFT_BUTTON));
 }
 
@@ -947,13 +979,14 @@ static void draw_avora_blob_decision_tree(
     }
 
     Vector2 mouse = GetMousePosition();
+    float visible_bottom = canvas_bounds.y + canvas_bounds.height - ui->terminal_anim_h;
     Vector2 awake_pos = {
         canvas_bounds.x + canvas_bounds.width - 48.0f,
-        canvas_bounds.y + canvas_bounds.height - 46.0f
+        fmaxf(canvas_bounds.y + 46.0f, visible_bottom - 46.0f)
     };
     Vector2 ball_pos = {
         canvas_bounds.x + canvas_bounds.width - 34.0f,
-        canvas_bounds.y + canvas_bounds.height - 34.0f
+        fmaxf(canvas_bounds.y + 34.0f, visible_bottom - 34.0f)
     };
 
     ui->blob_mascot_bounds = (Rectangle){ awake_pos.x - 36.0f, awake_pos.y - 40.0f, 72.0f, 74.0f };
@@ -1083,12 +1116,12 @@ static void draw_avora_blob_decision_tree(
         }
     }
 
-    Vector2 lbl_sz = MeasureTextEx(font, "Blob (?)", 12.0f, 1.0f);
+    Vector2 lbl_sz = MeasureTextEx(font, "Blob (?)", 13.0f, 1.0f);
     DrawTextEx(
         font,
         "Blob (?)",
-        (Vector2){ blob_center.x - lbl_sz.x * 0.5f, blob_center.y + ry + 3.0f },
-        12.0f,
+        (Vector2){ floorf(blob_center.x - lbl_sz.x * 0.5f + 0.5f), floorf(blob_center.y + ry + 3.0f + 0.5f) },
+        13.0f,
         1.0f,
         (Color){ 167, 243, 208, (unsigned char)(140 + (int)(110.0f * a)) }
     );
@@ -1271,7 +1304,14 @@ static void draw_avora_blob_decision_tree(
             }
 
             BeginScissorMode((int)card.x + 4, (int)card.y + 4, (int)card.width - 8, (int)card.height - 8);
-            DrawTextEx(font, title, (Vector2){ card.x + 12.0f, card.y + 10.0f }, 14.0f, 1.0f, accent);
+            DrawTextEx(
+                ui->font_ui.texture.id ? ui->font_ui : font,
+                title,
+                (Vector2){ floorf(card.x + 12.0f + 0.5f), floorf(card.y + 9.0f + 0.5f) },
+                15.0f,
+                1.0f,
+                accent
+            );
 
             int btn_count = (opt1_lbl ? 1 : 0) + (opt2_lbl ? 1 : 0) + (opt3_lbl ? 1 : 0);
             float btns_total_h = (float)btn_count * 27.0f + 6.0f;
@@ -1351,7 +1391,9 @@ void layout_render_canvas(
 )
 {
     if (!session || !ui) return;
-    Font font = GuiGetFont();
+    Font font    = (ui->font_canvas.texture.id != 0) ? ui->font_canvas : GuiGetFont();
+    Font sm_font = (ui->font_sm.texture.id != 0)     ? ui->font_sm     : GuiGetFont();
+    Font ui_font = (ui->font_ui.texture.id != 0)     ? ui->font_ui     : GuiGetFont();
     const TreeSnapshot *snap = &session->snapshot;
     float dt = GetFrameTime();
 
@@ -1540,33 +1582,36 @@ void layout_render_canvas(
         const char *empty_msg = (session->state == STATE_IDLE)
             ? "Canvas de Memória — Clique em [ Compilar & Iniciar ] para depurar Árvores, Listas, Vetores ou Código C"
             : "Executando código sem alocações na Heap — Acompanhe a Pilha, Variáveis no HUD e o Terminal (stdout)";
-        Vector2 msz = MeasureTextEx(font, empty_msg, 14.0f, 1.0f);
-        float mx = canvas_bounds.x + fmaxf(14.0f, (canvas_bounds.width - msz.x) * 0.5f);
+        Vector2 msz = MeasureTextEx(ui_font, empty_msg, 15.0f, 1.0f);
+        float mx = floorf(canvas_bounds.x + fmaxf(14.0f, (canvas_bounds.width - msz.x) * 0.5f) + 0.5f);
+        float my = floorf(canvas_bounds.y + canvas_bounds.height * 0.50f + 0.5f);
         DrawTextEx(
-            font,
+            ui_font,
             empty_msg,
-            (Vector2){ mx, canvas_bounds.y + canvas_bounds.height * 0.50f },
-            14.0f,
+            (Vector2){ mx, my },
+            15.0f,
             1.0f,
             (Color){ 100, 116, 139, 220 }
         );
     }
 
     /* 5. Floating Observability HUD (Top-Left: Call Stack & Local Variables) */
-    bool over_hud = draw_Observability_hud(session, ui, canvas_bounds, font);
+    bool over_hud = draw_Observability_hud(session, ui, canvas_bounds, sm_font);
 
     /* 6. Floating Camera Pill (Bottom-Left: [ Auto | - 100% + ]) */
-    bool over_pill = draw_floating_camera_pill(snap, ui, canvas_bounds, font);
+    bool over_pill = draw_floating_camera_pill(snap, ui, canvas_bounds, sm_font);
 
     /* 7. Interactive Decision-Tree Blob Mascot (Bottom-Right) */
-    draw_avora_blob_decision_tree(session, ui, canvas_bounds, font);
+    draw_avora_blob_decision_tree(session, ui, canvas_bounds, sm_font);
 
     /* 8. Canvas Mouse Pan & Wheel Zoom (auto-disables Auto-Focus when user interacts manually) */
     Vector2 mouse = GetMousePosition();
+    bool over_terminal = (ui->terminal_anim_h > 1.5f) &&
+                         (mouse.y >= canvas_bounds.y + canvas_bounds.height - ui->terminal_anim_h);
     bool over_blob = CheckCollisionPointRec(mouse, ui->blob_mascot_bounds) ||
                      (ui->blob_anim_progress > 0.05f && CheckCollisionPointRec(mouse, ui->blob_card_bounds));
     bool inside_canvas = CheckCollisionPointRec(mouse, canvas_bounds) &&
-                         !over_hud && !over_pill && !over_blob &&
+                         !over_terminal && !over_hud && !over_pill && !over_blob &&
                          !ui->dropdown_edit_mode &&
                          !ui->dragging_v_split;
 

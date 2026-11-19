@@ -4,6 +4,20 @@ Todas as mudanças notáveis do projeto **AVORA** (*Analisador Visual de Operaç
 
 ---
 
+## [3.0.1] — 2026-11-19 (Hotfix)
+### Nitidez de Fontes (Full HD / 1080p) & Layout de Botões
+- **Renderização de texto 1:1 na UI + Mipmaps no Canvas**: carregados 4 atlas dedicados no startup (`16px` para o editor, `15px` para RayGUI/títulos, `13px` para HUD/Terminal/Blob/Status e `32px` com *mipmaps* + `TEXTURE_FILTER_TRILINEAR` para o canvas 2D com zoom).
+- **Snap de coordenadas para pixels inteiros**: arredondamento em [`GuiDrawTextCentered`](include/raygui.h), HUD de observabilidade (corrigido incremento `.5px`), pílula de zoom, Blob, editor e barra de status para eliminar borrão sub-pixel.
+- **Correção de texto vazando dos botões**: abas do Terminal Retrátil (`Diagnóstico & Compilador (GCC/ASan)`, `Saída do Programa (stdout / printf)`), botão `✕ Ocultar ▼` e `↺ Resetar` agora calculam a largura dinamicamente via `MeasureTextEx`, com `BeginScissorMode` de segurança nos botões da RayGUI.
+- Adicionado glifo `⏸` (`0x23F8`) para o botão `Pausar Auto`.
+
+### Ergonomia do Editor & Visibilidade do Blob
+- **Rolamento suave com limites (*clamping*)**: interpolação fluida (`scroll_y` / `scroll_x` e terminal), suporte a scroll horizontal nativo (`GetMouseWheelMoveV`) + `Shift + Scroll` + `PageUp`/`PageDown`, impedindo scroll além do fim do arquivo ou através do terminal aberto.
+- **Undo / Redo contínuo e acelerado**: segurar `Ctrl+Z` (ou `Ctrl+Y` / `Ctrl+Shift+Z`) agora repete rapidamente (~20 passos/s e acelera para ~40 passos/s ao segurar) com histórico expandido de 48 para **128 estados**.
+- **Blob e pílula de câmera sempre visíveis**: ao abrir o Terminal Retrátil, o mascote Blob (junto com seu card interativo) e a pílula `[ Auto | - 100% + ]` acompanham suavemente a altura do painel e nunca ficam encobertos.
+
+---
+
 ## [3.0.0] — 2026-11-19
 ### Identidade Visual (*Midnight Slate*) & Polimento Gráfico
 - Nova paleta **Midnight Slate**: Canvas `#0F111A` com **Dot Grid dinâmico** (`#1E2233`) sincronizado com Pan e Zoom da câmera, editor e painéis em `#161925`, superfícies elevadas `#1F2437` com bordas `#2A3047`.

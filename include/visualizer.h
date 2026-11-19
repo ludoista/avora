@@ -13,7 +13,7 @@
 #include <raylib.h>
 #include <raymath.h>
 
-#define AVORA_VERSION "3.2.0"
+#define AVORA_VERSION "3.3.0"
 #define AVORA_WINDOW_TITLE "AVORA"
 
 #define MAX_TREE_NODES        256
@@ -542,6 +542,7 @@ typedef struct {
     float            error_shake_timer;   /* ~150ms 2-3px micro-shake on compile/runtime trap */
     float            error_flash_timer;   /* ~150ms subtle crimson flash on trap */
     int              last_step_line_sfx;  /* Prevents duplicate tick SFX on same step */
+    int              last_followed_exec_line; /* Auto-scrolls editor to active debugger line on step */
     Font             mono_font;    /* Dynamic 12..26px 1:1 — Code Editor */
     Font             font_ui;      /* 15px 1:1 — RayGUI controls, titles, gutter */
     Font             font_sm;      /* 13px 1:1 — HUD, Terminal tabs/logs, Blob, Status */

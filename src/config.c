@@ -601,7 +601,7 @@ void theme_apply_to_raygui(const ThemePalette *pal)
 }
 
 /* ============================================================================
- * 4. DYNAMIC FOLDER-BASED TEMPLATES ENGINE (CLASSROOM / AED1 SUPPORT)
+ * 4. DYNAMIC FOLDER-BASED TEMPLATES ENGINE (CUSTOM LOCAL LIBRARY SUPPORT)
  * ============================================================================ */
 
 static bool has_c_extension(const char *name)

@@ -1331,6 +1331,21 @@ static void update_and_draw_code_editor(
                       : session->snapshot.current_executing_line;
     bool is_error_line = (session->diagnostic.error_type != ERR_NONE);
 
+    /* Automatically keep the executing or fault line smoothly in view when stepping */
+    if (session->state != STATE_IDLE && active_line > 0) {
+        if (ui->last_followed_exec_line != active_line) {
+            ui->last_followed_exec_line = active_line;
+            float line_top = (float)(active_line - 1) * line_h;
+            float view_h   = editor_bounds.height - 20.0f;
+            if (cfg->presentation_mode || line_top < ui->target_scroll_y + line_h ||
+                line_top + line_h * 2.0f > ui->target_scroll_y + view_h) {
+                ui->target_scroll_y = fmaxf(0.0f, line_top - view_h * 0.36f);
+            }
+        }
+    } else {
+        ui->last_followed_exec_line = 0;
+    }
+
     float scroll_lerp = avora_exp_decay(20.0f, GetFrameTime(), cfg->reduce_animations);
     if (ui->target_scroll_y < 0.0f) ui->target_scroll_y = 0.0f;
     if (ui->target_scroll_x < 0.0f) ui->target_scroll_x = 0.0f;
@@ -1882,9 +1897,23 @@ static void handle_global_shortcuts(DebuggerSession *session, WorkspaceUI *ui, f
             ui->dropdown_edit_mode = false;
             return;
         }
+        if (ui->config.presentation_mode) {
+            if (ui->has_focus) {
+                ui->has_focus = false;
+                show_toast(ui, "Palco: Controles de seta / passador Bluetooth ativos");
+            } else {
+                ui->config.presentation_mode = false;
+                ui_workspace_reload_editor_font(ui);
+                config_save(&ui->config);
+                show_toast(ui, "Modo Apresentação DESATIVADO");
+            }
+            return;
+        }
     }
 
-    if (ui->modal_path_input_open || ui->modal_unsaved_confirm_open) return;
+    if (ui->modal_path_input_open || ui->modal_unsaved_confirm_open ||
+        ui->modal_settings_open   || ui->modal_shortcuts_open ||
+        ui->modal_about_open      || ui->modal_sysdiag_open) return;
 
     bool ctrl  = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
     bool shift = IsKeyDown(KEY_LEFT_SHIFT)   || IsKeyDown(KEY_RIGHT_SHIFT);
@@ -1892,6 +1921,69 @@ static void handle_global_shortcuts(DebuggerSession *session, WorkspaceUI *ui, f
                               (session->state == STATE_PAUSED ||
                                session->state == STATE_RUNNING ||
                                session->state == STATE_STEPPING);
+
+    /* Presentation / Stage Mode (Slide Clicker & Arrow-Key Navigation State Machine) */
+    if (ui->config.presentation_mode && !ctrl && !ui->dropdown_edit_mode && ui->active_menu < 0) {
+        bool stage_keys_free = (!ui->has_focus && !ui->stdin_textbox_focused);
+
+        /* Slide Presenter Next (PageDown) OR Right Arrow / Space when not typing in editor */
+        if (IsKeyPressed(KEY_PAGE_DOWN) ||
+            (stage_keys_free && (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_SPACE)))) {
+            ui->blob_idle_timer   = 0.0f;
+            ui->camera_auto_focus = true;
+            if (!is_running_session) {
+                trigger_compile_and_start(session, ui);
+                ui->has_focus     = false;
+                ui->terminal_open = false;
+            } else {
+                session->auto_play = false;
+                int prev_cur = session->history_cursor;
+                session_step_forward_or_gdb(session);
+                if (session->history_cursor != prev_cur) {
+                    audio_play_sfx(SFX_STEP_TICK, &ui->config, 0.05f);
+                }
+            }
+            return;
+        }
+
+        /* Slide Presenter Prev (PageUp) OR Left Arrow when not typing in editor */
+        if (IsKeyPressed(KEY_PAGE_UP) || (stage_keys_free && IsKeyPressed(KEY_LEFT))) {
+            ui->blob_idle_timer   = 0.0f;
+            ui->camera_auto_focus = true;
+            if (is_running_session) {
+                session->auto_play = false;
+                if (session_step_back(session)) {
+                    audio_play_sfx(SFX_STEP_TICK, &ui->config, -0.10f);
+                }
+            }
+            return;
+        }
+
+        /* Smooth Code Scrolling via Up / Down Arrows in Stage Mode */
+        if (stage_keys_free) {
+            if (IsKeyPressed(KEY_UP) || IsKeyPressedRepeat(KEY_UP)) {
+                ui->target_scroll_y = fmaxf(0.0f, ui->target_scroll_y - 54.0f);
+                return;
+            }
+            if (IsKeyPressed(KEY_DOWN) || IsKeyPressedRepeat(KEY_DOWN)) {
+                ui->target_scroll_y += 54.0f;
+                return;
+            }
+            /* Quick Template Switching via [ and ] */
+            if (IsKeyPressed(KEY_LEFT_BRACKET) && ui->template_count > 0) {
+                int prev_t = (ui->active_template_idx - 1 + ui->template_count) % ui->template_count;
+                request_guarded_action(session, ui, 3, prev_t);
+                ui->has_focus = false;
+                return;
+            }
+            if (IsKeyPressed(KEY_RIGHT_BRACKET) && ui->template_count > 0) {
+                int next_t = (ui->active_template_idx + 1) % ui->template_count;
+                request_guarded_action(session, ui, 3, next_t);
+                ui->has_focus = false;
+                return;
+            }
+        }
+    }
 
     /* F1: Atalhos de Teclado */
     if (IsKeyPressed(KEY_F1)) {
@@ -2003,13 +2095,18 @@ static void handle_global_shortcuts(DebuggerSession *session, WorkspaceUI *ui, f
         request_guarded_action(session, ui, 5, 0);
     }
 
-    /* Ctrl+Shift+P : Modo Apresentação (Projetor) */
+    /* Ctrl+Shift+P : Modo Apresentação / Palco */
     if (shift && IsKeyPressed(KEY_P)) {
         ui->config.presentation_mode = !ui->config.presentation_mode;
+        if (ui->config.presentation_mode) {
+            ui->has_focus         = false;
+            ui->terminal_open     = false;
+            ui->camera_auto_focus = true;
+        }
         ui_workspace_reload_editor_font(ui);
         config_save(&ui->config);
         show_toast(ui, ui->config.presentation_mode
-                       ? "Modo Apresentação (Projetor) ATIVADO"
+                       ? "Modo Apresentação ATIVO (Use ← → ↑ ↓ ou Passador Bluetooth)"
                        : "Modo Apresentação DESATIVADO");
     }
 
@@ -2909,8 +3006,10 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
         DrawTextEx(font_ui, "Tipografia & Indentação do Editor C11", (Vector2){ cx, cy }, 15.0f, 1.0f, pal->accent_secondary);
         cy += 28.0f;
 
-        DrawTextEx(font_sm, "Tamanho da Fonte do Editor (Ctrl+ / Ctrl-):", (Vector2){ cx, cy + 6.0f }, 13.0f, 1.0f, pal->text_primary);
-        if (GuiButton((Rectangle){ cx + 290.0f, cy, 32.0f, 28.0f }, "-")) {
+        const char *fsz_title = "Tamanho da Fonte do Editor (Ctrl+ / Ctrl-):";
+        DrawTextEx(font_sm, fsz_title, (Vector2){ floorf(cx), floorf(cy + 7.0f) }, 13.0f, 1.0f, pal->text_primary);
+        float ctrl_x = cx + fmaxf(332.0f, floorf(MeasureTextEx(font_sm, fsz_title, 13.0f, 1.0f).x + 20.0f));
+        if (GuiButton((Rectangle){ ctrl_x, cy, 32.0f, 28.0f }, "-")) {
             if (cfg->editor_font_size > 12) {
                 cfg->editor_font_size--;
                 ui_workspace_reload_editor_font(ui);
@@ -2920,27 +3019,27 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
         char fsz_lbl[32];
         snprintf(fsz_lbl, sizeof(fsz_lbl), "%d px", cfg->editor_font_size);
         Vector2 fsz_m = MeasureTextEx(font_ui, fsz_lbl, 15.0f, 1.0f);
-        DrawTextEx(font_ui, fsz_lbl, (Vector2){ cx + 328.0f + (56.0f - fsz_m.x) * 0.5f, cy + 6.0f }, 15.0f, 1.0f, pal->accent_primary);
-        if (GuiButton((Rectangle){ cx + 390.0f, cy, 32.0f, 28.0f }, "+")) {
+        DrawTextEx(font_ui, fsz_lbl, (Vector2){ floorf(ctrl_x + 36.0f + (56.0f - fsz_m.x) * 0.5f), floorf(cy + 6.0f) }, 15.0f, 1.0f, pal->accent_primary);
+        if (GuiButton((Rectangle){ ctrl_x + 96.0f, cy, 32.0f, 28.0f }, "+")) {
             if (cfg->editor_font_size < 24) {
                 cfg->editor_font_size++;
                 ui_workspace_reload_editor_font(ui);
                 changed = true;
             }
         }
-        if (GuiButton((Rectangle){ cx + 432.0f, cy, 96.0f, 28.0f }, "Padrão (16)")) {
+        if (GuiButton((Rectangle){ ctrl_x + 136.0f, cy, 98.0f, 28.0f }, "Padrão (16)")) {
             cfg->editor_font_size = 16;
             ui_workspace_reload_editor_font(ui);
             changed = true;
         }
         cy += 42.0f;
 
-        DrawTextEx(font_sm, "Largura da Indentação (Tecla Tab):", (Vector2){ cx, cy + 6.0f }, 13.0f, 1.0f, pal->text_primary);
-        if (draw_segmented_option_btn((Rectangle){ cx + 290.0f, cy, 110.0f, 28.0f }, "2 Espaços", cfg->tab_size == 2, font_sm, pal)) {
+        DrawTextEx(font_sm, "Largura da Indentação (Tecla Tab):", (Vector2){ floorf(cx), floorf(cy + 7.0f) }, 13.0f, 1.0f, pal->text_primary);
+        if (draw_segmented_option_btn((Rectangle){ ctrl_x, cy, 112.0f, 28.0f }, "2 Espaços", cfg->tab_size == 2, font_sm, pal)) {
             cfg->tab_size = 2;
             changed = true;
         }
-        if (draw_segmented_option_btn((Rectangle){ cx + 408.0f, cy, 110.0f, 28.0f }, "4 Espaços", cfg->tab_size == 4, font_sm, pal)) {
+        if (draw_segmented_option_btn((Rectangle){ ctrl_x + 122.0f, cy, 112.0f, 28.0f }, "4 Espaços", cfg->tab_size == 4, font_sm, pal)) {
             cfg->tab_size = 4;
             changed = true;
         }
@@ -2949,7 +3048,7 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
         DrawTextEx(font_ui, "Comportamento & Sessão", (Vector2){ cx, cy }, 15.0f, 1.0f, pal->accent_secondary);
         cy += 26.0f;
 
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Exibir números de linha na calha esquerda (Gutter)", &cfg->show_line_numbers, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Exibir números de linha na margem esquerda (Gutter)", &cfg->show_line_numbers, font_sm, pal)) changed = true;
         cy += 30.0f;
         if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Destacar linha atual do cursor durante a edição", &cfg->highlight_current_line, font_sm, pal)) changed = true;
         cy += 30.0f;
@@ -2964,12 +3063,12 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
         cy += 26.0f;
 
         if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f },
-                              "Ativar AddressSanitizer (ASan: -fsanitize=address) para detectar Use-After-Free/OOB",
+                              "Ativar AddressSanitizer (ASan: -fsanitize=address) p/ Use-After-Free & OOB",
                               &cfg->asan_enabled, font_sm, pal)) {
             session->user_asan_pref = cfg->asan_enabled;
             changed = true;
         }
-        cy += 40.0f;
+        cy += 38.0f;
 
         DrawTextEx(font_ui, "Timeout do Watchdog POSIX (Proteção contra Loop Infinito)", (Vector2){ cx, cy }, 15.0f, 1.0f, pal->accent_secondary);
         cy += 24.0f;
@@ -2986,7 +3085,7 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
                 changed = true;
             }
         }
-        cy += 44.0f;
+        cy += 42.0f;
 
         DrawTextEx(font_ui, "Execução & Velocidade Padrão do Auto-Play", (Vector2){ cx, cy }, 15.0f, 1.0f, pal->accent_secondary);
         cy += 26.0f;
@@ -2994,7 +3093,7 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
         float def_spd = 0.05f * powf(2000.0f, cfg->default_speed_t);
         char spd_lbl[64];
         snprintf(spd_lbl, sizeof(spd_lbl), "Velocidade inicial: %.2fx", def_spd);
-        DrawTextEx(font_sm, spd_lbl, (Vector2){ cx, cy + 5.0f }, 13.0f, 1.0f, pal->text_primary);
+        DrawTextEx(font_sm, spd_lbl, (Vector2){ floorf(cx), floorf(cy + 5.0f) }, 13.0f, 1.0f, pal->text_primary);
 
         float prev_t = cfg->default_speed_t;
         GuiSliderBar((Rectangle){ cx + 185.0f, cy + 4.0f, 190.0f, 18.0f }, NULL, NULL, &cfg->default_speed_t, 0.0f, 1.0f);
@@ -3007,19 +3106,19 @@ static void draw_settings_modal(DebuggerSession *session, WorkspaceUI *ui, float
             session->speed_slider_t = 0.391f;
             changed = true;
         }
-        cy += 42.0f;
+        cy += 40.0f;
 
         if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Iniciar depuração pausado na primeira linha da main()", &cfg->start_paused_on_main, font_sm, pal)) changed = true;
         cy += 28.0f;
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Abrir Terminal Retrátil automaticamente quando houver saída em stdout (printf)", &cfg->auto_open_terminal_on_stdout, font_sm, pal)) changed = true;
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Abrir Terminal Retrátil automaticamente ao receber saída em stdout (printf)", &cfg->auto_open_terminal_on_stdout, font_sm, pal)) changed = true;
         cy += 28.0f;
-        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Ativar Entrada (stdin) na aba Terminal (para códigos com scanf/fgets/getchar)", &cfg->enable_stdin, font_sm, pal)) {
+        if (draw_checkbox_row((Rectangle){ cx, cy, cw, 24.0f }, "Ativar Entrada Padrão (stdin) na aba Terminal (scanf / fgets / getchar)", &cfg->enable_stdin, font_sm, pal)) {
             session->enable_stdin = cfg->enable_stdin;
             changed = true;
         }
     } else if (ui->settings_active_tab == 3) {
-        /* TAB 3: TEMPLATES DINÂMICOS (SALA DE AULA / AED1) & JANELA */
-        DrawTextEx(font_ui, "Templates Dinâmicos por Pasta (Modo Sala de Aula / AED1)", (Vector2){ cx, cy }, 15.0f, 1.0f, pal->accent_secondary);
+        /* TAB 3: TEMPLATES PERSONALIZADOS (PASTA LOCAL) & JANELA */
+        DrawTextEx(font_ui, "Templates Personalizados por Pasta (Biblioteca Local .c)", (Vector2){ cx, cy }, 15.0f, 1.0f, pal->accent_secondary);
         cy += 24.0f;
 
         static const char *tpl_modes[3] = {
@@ -3256,7 +3355,7 @@ static void draw_shortcuts_modal(WorkspaceUI *ui, float sw, float sh)
     Font font_sm = ui->font_sm;
 
     DrawRectangle(0, 0, (int)sw, (int)sh, Fade(BLACK, pal->is_light ? 0.35f : 0.60f));
-    float mw = 640.0f;
+    float mw = fminf(780.0f, sw - 40.0f);
     float mh = 420.0f;
     Rectangle modal = { floorf((sw - mw) * 0.5f), floorf((sh - mh) * 0.5f), mw, mh };
 
@@ -3264,7 +3363,7 @@ static void draw_shortcuts_modal(WorkspaceUI *ui, float sw, float sh)
     DrawRectangleRoundedLinesEx(modal, 0.05f, 8, 1.4f, pal->accent_secondary);
 
     DrawTextEx(font_ui, "⌨ Atalhos de Teclado do AVORA",
-               (Vector2){ modal.x + 18.0f, modal.y + 14.0f }, 15.0f, 1.0f, pal->accent_secondary);
+               (Vector2){ floorf(modal.x + 18.0f), floorf(modal.y + 14.0f) }, 15.0f, 1.0f, pal->accent_secondary);
     DrawLineEx((Vector2){ modal.x, modal.y + 40.0f }, (Vector2){ modal.x + mw, modal.y + 40.0f }, 1.0f, pal->border);
 
     static const struct { const char *key; const char *desc; } left_col[] = {
@@ -3279,33 +3378,34 @@ static void draw_shortcuts_modal(WorkspaceUI *ui, float sw, float sh)
         { "Ctrl + Z / Y",   "Desfazer / Refazer contínuo" }
     };
     static const struct { const char *key; const char *desc; } right_col[] = {
-        { "F5 / Shift+F5",  "Compilar & Iniciar / Parar" },
-        { "F10 / Shift+F10","Avançar / Voltar Passo (Time-Travel)" },
-        { "F9",             "Continuar até Breakpoint" },
-        { "F8",             "Auto-Play / Pausar" },
+        { "F5 / Shift+F5",   "Compilar & Iniciar / Parar" },
+        { "F10 / Shift+F10", "Avançar / Voltar Passo (Time-Travel)" },
+        { "F9",              "Continuar até Breakpoint" },
+        { "F8",              "Auto-Play / Pausar" },
         { "Clique no Gutter","Alternar Breakpoint na Linha (●)" },
-        { "Ctrl + ` / J",   "Mostrar / Ocultar Terminal" },
-        { "Ctrl + Shift+P", "Modo Apresentação (Projetor)" },
+        { "Ctrl + ` / J",    "Mostrar / Ocultar Terminal" },
+        { "Ctrl + Shift+P",  "Modo Apresentação / Palco (Setas)" },
         { "Ctrl + + / - / 0","Zoom da Fonte do Editor" },
-        { "F11",            "Alternar Tela Cheia" }
+        { "F11",             "Alternar Tela Cheia" }
     };
 
     float y0 = modal.y + 56.0f;
+    float right_x = modal.x + floorf(mw * 0.48f);
     for (int i = 0; i < 9; i++) {
         float y = y0 + (float)i * 32.0f;
         /* Left column */
-        Rectangle kb1 = { modal.x + 18.0f, y, 114.0f, 24.0f };
+        Rectangle kb1 = { modal.x + 18.0f, y, 118.0f, 24.0f };
         DrawRectangleRounded(kb1, 0.25f, 4, pal->bg_elevated);
         DrawRectangleRoundedLinesEx(kb1, 0.25f, 4, 1.0f, pal->border);
-        DrawTextEx(font_sm, left_col[i].key, (Vector2){ kb1.x + 8.0f, kb1.y + 5.0f }, 13.0f, 1.0f, pal->accent_primary);
-        DrawTextEx(font_sm, left_col[i].desc, (Vector2){ kb1.x + 122.0f, kb1.y + 5.0f }, 13.0f, 1.0f, pal->text_primary);
+        DrawTextEx(font_sm, left_col[i].key, (Vector2){ floorf(kb1.x + 8.0f), floorf(kb1.y + 5.0f) }, 13.0f, 1.0f, pal->accent_primary);
+        DrawTextEx(font_sm, left_col[i].desc, (Vector2){ floorf(kb1.x + 126.0f), floorf(kb1.y + 5.0f) }, 13.0f, 1.0f, pal->text_primary);
 
         /* Right column */
-        Rectangle kb2 = { modal.x + 326.0f, y, 114.0f, 24.0f };
+        Rectangle kb2 = { right_x, y, 128.0f, 24.0f };
         DrawRectangleRounded(kb2, 0.25f, 4, pal->bg_elevated);
         DrawRectangleRoundedLinesEx(kb2, 0.25f, 4, 1.0f, pal->border);
-        DrawTextEx(font_sm, right_col[i].key, (Vector2){ kb2.x + 8.0f, kb2.y + 5.0f }, 13.0f, 1.0f, pal->accent_secondary);
-        DrawTextEx(font_sm, right_col[i].desc, (Vector2){ kb2.x + 122.0f, kb2.y + 5.0f }, 13.0f, 1.0f, pal->text_primary);
+        DrawTextEx(font_sm, right_col[i].key, (Vector2){ floorf(kb2.x + 8.0f), floorf(kb2.y + 5.0f) }, 13.0f, 1.0f, pal->accent_secondary);
+        DrawTextEx(font_sm, right_col[i].desc, (Vector2){ floorf(kb2.x + 136.0f), floorf(kb2.y + 5.0f) }, 13.0f, 1.0f, pal->text_primary);
     }
 
     if (GuiPrimaryButton((Rectangle){ modal.x + mw - 132.0f, modal.y + mh - 42.0f, 114.0f, 28.0f }, "Fechar (Esc)")) {
@@ -3340,7 +3440,7 @@ static void draw_about_modal(WorkspaceUI *ui, float sw, float sh)
                "• Árvores Binárias, Florestas, AVL, Rubro-Negra & Árvore B\n"
                "• Listas Encadeadas (next/prev) & Vetores 1D (Busca e Ordenação)\n"
                "• Introspecção via GDB/MI + GCC + AddressSanitizer (ASan)\n"
-               "• Temas Monkeytype & Templates Dinâmicos para aulas de AED",
+               "• Temas Monkeytype, Modo Apresentação & Templates Dinâmicos",
                (Vector2){ modal.x + 22.0f, modal.y + 84.0f }, 13.0f, 1.0f, pal->text_secondary);
 
     if (GuiButton((Rectangle){ modal.x + 22.0f, modal.y + mh - 46.0f, 210.0f, 28.0f }, "Abrir Pasta ~/.config/avora")) {
@@ -3507,8 +3607,10 @@ void ui_workspace_update_and_draw(DebuggerSession *session, WorkspaceUI *ui)
     watchdog_check(session);
 
     if (prev_err == ERR_NONE && session->diagnostic.error_type != ERR_NONE) {
-        ui->terminal_open            = true;
-        ui->terminal_active_tab      = 0;
+        if (!ui->config.presentation_mode) {
+            ui->terminal_open       = true;
+            ui->terminal_active_tab = 0;
+        }
         ui->terminal_scroll_y        = 0.0f;
         ui->terminal_target_scroll_y = 0.0f;
         ui->error_shake_timer        = 0.16f;
@@ -3523,7 +3625,7 @@ void ui_workspace_update_and_draw(DebuggerSession *session, WorkspaceUI *ui)
         }
     }
 
-    if (!prev_has_stdout && session->has_new_stdout && ui->config.auto_open_terminal_on_stdout) {
+    if (!prev_has_stdout && session->has_new_stdout && ui->config.auto_open_terminal_on_stdout && !ui->config.presentation_mode) {
         ui->terminal_open       = true;
         ui->terminal_active_tab = 1;
     }

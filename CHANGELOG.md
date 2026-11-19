@@ -4,6 +4,37 @@ Todas as mudanças notáveis do projeto **AVORA** (*Analisador Visual de Operaç
 
 ---
 
+## [3.3.0] — 2026-11-19
+### Modo Apresentação / Palco Completo (Controle via Setas & Passador Bluetooth)
+- **Navegação por Setas e Controle Remoto Bluetooth (`Ctrl+Shift+P`)**:
+  - Ao ativar o Modo Apresentação, o foco de digitação é liberado para que as teclas **`→` / `PageDown` / `Espaço`** avancem passos (ou compilem e iniciem quando ocioso), **`←` / `PageUp`** voltem passos no *Time-Travel*, **`↑` / `↓`** rolem suavemente o código no editor sem mouse, **`[` / `]`** troquem de template e **`Esc`** saia do modo palco.
+  - Auto-scroll inteligente do editor mantendo a linha em execução centralizada a cada passo.
+- **Palco Concatenado & Nós Ampliados**:
+  - Nós do Canvas maiores (`30px` de raio, fonte `22px`, badges `15px`) e Auto-Foco com escala ampliada para leitura clara em projetores.
+  - **Console & Diagnóstico de Palco sobre o Canvas (`draw_presentation_stage_overlay`)**: card translúcido e espaçado na base do Canvas que concatena o estado/diagnóstico da linha atual e as últimas linhas de `stdout` (`printf`) / GCC diretamente na tela de nós, sem precisar abrir a gaveta do terminal retrátil.
+
+### Reorganização Sequencial dos 24 Templates & Nomenclatura Universal
+- **Trilha Pedagógica Progressiva (`0` a `23`)**:
+  - **0:** Scratchpad Livre
+  - **1–4 (Estruturas Lineares):** Lista Encadeada Simples (`BUILD_LIST`), Lista Duplamente Encadeada com Sentinela, Pilha (`Stack` LIFO) e Fila Circular (`Queue` FIFO)
+  - **5–16 (Árvores, LeetCodes & Balanceamento):** Travessias, Buscas (`BST`/`DFS`/`BFS`), BST (Inserção & Remoção), LeetCodes `538`, `108`, `105`, `617`, `100`, `226+572`, Árvore AVL, Árvore Rubro-Negra e Árvore B / 2-3
+  - **17–18 (Ordenação & Busca):** Selection Sort + Busca Binária, QuickSort & Partição de Lomuto
+  - **19–20 (Estruturas Avançadas):** Binary Heap (Max-Heap) & HeapSort, Tabela Hash (Encadeamento Separado)
+  - **21–23 (Armadilhas de Memória):** Ponteiro Sem `NULL` (Lixo `0xBE`), Ciclo Estrutural e Segfault (`NULL`)
+- **Nomenclatura Limpa**: removidos prefixos específicos de disciplina (`"AED1"` / `"Modo Sala de Aula"`) em favor de `"Templates Personalizados por Pasta (Biblioteca Local .c)"`.
+
+### Detecção Correta de Ciclos em Listas Duplas & Tabela Hash
+- **Diferenciação entre Vínculo Bidirecional (`prev <-> next`) e Ciclo Real**:
+  - `__aed_can_reach()` e `__aed_dump_tree()` no *harness* agora tratam o ponteiro `left` (`prev`) de nós `struct ListNode` (`LIST_NODE`) como referência reversa ao predecessor, verificando alcançabilidade apenas pela cadeia `next` (`right`).
+  - Na descoberta de raízes (`refresh_runtime_snapshot`), arestas `prev` não marcam o nó cabeça como filho, permitindo que **Tabela Hash com Encadeamento** e **Lista Duplamente Encadeada** executem até `STATE_FINISHED` sem falso positivo de ciclo, mantendo a detecção imediata para ciclos reais.
+
+### Polimento Visual de Tema, Nitidez 1:1 & Layout de Modais/Menus
+- **Badge `[ ? não inic. ]` integrada ao Tema Ativo**: `draw_soft_uninit_pointer()` agora utiliza as cores da paleta ativa (`pal->bg_elevated`, `pal->accent_warning`, `pal->text_secondary`), mantendo contraste tanto em temas escuros quanto no *Serika Light*.
+- **Nitidez 1:1 nas Checkboxes**: `draw_checkbox_row()` redesenhada com checkmark vetorial (`DrawLineEx`) e texto exatamente na resolução nativa do atlas (`13.0f` com `floorf`, eliminando borrão sub-pixel).
+- **Zero Cortes ou Overlaps**: ampliadas as larguras e espaçamentos do modal de Configurações (`860px`), modal de Atalhos (`780px`) e menus dropdown superiores (`340px`).
+
+---
+
 ## [3.2.0] — 2026-11-19
 ### Polimento Visual ("Responsividade iOS + Click Crisp Indie") & Áudio Procedural (`src/audio.c`)
 - **Física Exponencial Independente de Framerate (`avora_exp_decay`)**: todas as interpolações de câmera (Pan/Zoom/Auto-Foco), transições de nós no Canvas 2D, rolagem do editor/terminal, HUD e mascote Blob agora usam decaimento exponencial contínuo (`1.0f - expf(-speed * dt)`), 100% interrompível e respeitando `reduce_animations`.

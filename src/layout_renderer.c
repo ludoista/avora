@@ -410,9 +410,10 @@ static void draw_cycle_edge(Vector2 start, Vector2 ancestor, bool is_left, float
 }
 
 static void draw_soft_uninit_pointer(
-    Vector2 parent_pos,
-    bool    is_left,
-    Font    font
+    Vector2             parent_pos,
+    bool                is_left,
+    Font                font,
+    const ThemePalette *pal
 )
 {
     float offset_x = is_left ? -54.0f : 54.0f;
@@ -424,47 +425,48 @@ static void draw_soft_uninit_pointer(
     Vector2 p1   = Vector2Add(parent_pos, Vector2Scale(norm, NODE_RADIUS));
     Vector2 p2   = Vector2Subtract(badge_center, Vector2Scale(norm, 12.0f));
 
-    Color dash_amber = { 245, 158, 11, 185 };
-    Color dash_slate = { 100, 116, 139, 155 };
+    Color dash_warn  = Fade(pal->accent_warning, 0.80f);
+    Color dash_muted = Fade(pal->text_secondary, 0.55f);
     int segments = 9;
     for (int i = 0; i < segments; i += 2) {
         float t0 = (float)i / (float)segments;
         float t1 = (float)(i + 1) / (float)segments;
         Vector2 a = Vector2Lerp(p1, p2, t0);
         Vector2 b = Vector2Lerp(p1, p2, t1);
-        DrawLineEx(a, b, 2.0f, (i % 4 == 0) ? dash_amber : dash_slate);
+        DrawLineEx(a, b, 2.0f, (i % 4 == 0) ? dash_warn : dash_muted);
     }
 
     const char *label = "[ ? não inic. ]";
-    Vector2 tsz = MeasureTextEx(font, label, 12.0f, 1.0f);
+    Vector2 tsz = MeasureTextEx(font, label, 13.0f, 1.0f);
     float bw = tsz.x + 12.0f;
-    float bh = 20.0f;
-    Rectangle pill = { badge_center.x - bw * 0.5f, badge_center.y - bh * 0.5f, bw, bh };
+    float bh = 21.0f;
+    Rectangle pill = { floorf(badge_center.x - bw * 0.5f), floorf(badge_center.y - bh * 0.5f), bw, bh };
 
-    DrawRectangleRounded(pill, 0.4f, 6, (Color){ 31, 36, 55, 235 });
-    DrawRectangleRoundedLinesEx(pill, 0.4f, 6, 1.2f, (Color){ 245, 158, 11, 195 });
+    DrawRectangleRounded(pill, 0.4f, 6, Fade(pal->bg_elevated, 0.96f));
+    DrawRectangleRoundedLinesEx(pill, 0.4f, 6, 1.2f, Fade(pal->accent_warning, 0.85f));
     DrawTextEx(
         font,
         label,
-        (Vector2){ pill.x + 6.0f, pill.y + 4.0f },
-        12.0f,
+        (Vector2){ floorf(pill.x + 6.0f), floorf(pill.y + (bh - tsz.y) * 0.5f) },
+        13.0f,
         1.0f,
-        (Color){ 253, 224, 71, 235 }
+        pal->accent_warning
     );
 }
 
 static void draw_garbage_or_dangling_hazard(
-    Vector2  parent_pos,
-    uint64_t bad_addr,
-    bool     is_left,
-    bool     is_dangling,
-    bool     is_fatal_garbage,
-    float    pulse,
-    Font     font
+    Vector2             parent_pos,
+    uint64_t            bad_addr,
+    bool                is_left,
+    bool                is_dangling,
+    bool                is_fatal_garbage,
+    float               pulse,
+    Font                font,
+    const ThemePalette *pal
 )
 {
     if (!is_dangling && !is_fatal_garbage) {
-        draw_soft_uninit_pointer(parent_pos, is_left, font);
+        draw_soft_uninit_pointer(parent_pos, is_left, font, pal);
         return;
     }
 
@@ -1419,7 +1421,162 @@ static void draw_avora_blob_decision_tree(
 }
 
 /* ============================================================================
- * 8. MAIN INTERACTIVE MEMORY CANVAS RENDERER (DYNAMIC THEME + FULL HEIGHT)
+ * 8. PRESENTATION / STAGE MODE CONCATENATED OVERLAY (DIAGNOSTICS + STDOUT + CONTROLS)
+ * ============================================================================ */
+
+static void draw_presentation_stage_overlay(
+    const DebuggerSession *session,
+    const WorkspaceUI     *ui,
+    Rectangle              canvas_bounds,
+    Font                   ui_font,
+    Font                   sm_font
+)
+{
+    if (!ui->config.presentation_mode) return;
+
+    const ThemePalette *pal  = &ui->theme;
+    const TreeSnapshot *snap = &session->snapshot;
+
+    /* 1. Top-Right Stage Controls Pill (Slide Clicker / Arrow Key Legend) */
+    const char *ctrl_txt = ui->has_focus
+        ? "● PALCO [EDITANDO CÓDIGO]  •  Esc Ativar Setas/Passador"
+        : "● MODO PALCO  •  ←/PgUp Voltar  •  →/PgDn/Espaço Passo  •  ↑↓ Rolar  •  [ ] Template  •  Esc Sair";
+    Vector2 csz = MeasureTextEx(sm_font, ctrl_txt, 13.0f, 1.0f);
+    float pw = fminf(canvas_bounds.width - 24.0f, csz.x + 24.0f);
+    Rectangle top_pill = {
+        floorf(canvas_bounds.x + canvas_bounds.width - pw - 12.0f),
+        floorf(canvas_bounds.y + 12.0f),
+        pw,
+        28.0f
+    };
+
+    DrawRectangleRounded(top_pill, 0.35f, 6, Fade(pal->bg_panel, 0.94f));
+    DrawRectangleRoundedLinesEx(top_pill, 0.35f, 6, 1.3f,
+                                ui->has_focus ? pal->accent_warning : pal->accent_primary);
+    BeginScissorMode((int)top_pill.x + 4, (int)top_pill.y, (int)top_pill.width - 8, (int)top_pill.height);
+    DrawTextEx(
+        sm_font,
+        ctrl_txt,
+        (Vector2){ floorf(top_pill.x + 12.0f), floorf(top_pill.y + (top_pill.height - csz.y) * 0.5f) },
+        13.0f,
+        1.0f,
+        ui->has_focus ? pal->accent_warning : pal->accent_primary
+    );
+    EndScissorMode();
+
+    /* 2. Sparse Concatenated Diagnostics & Terminal (stdout) Card on the Canvas Stage */
+    bool has_error  = (session->diagnostic.error_type != ERR_NONE);
+    bool has_stdout = (session->program_stdout[0] != '\0');
+    bool is_active  = (session->state != STATE_IDLE) || has_error || has_stdout;
+    if (!is_active) return;
+
+    /* Extract up to last 3 non-empty lines of stdout (or compiler log on compile error) */
+    const char *src_stream = (session->diagnostic.error_type == ERR_COMPILE && session->diagnostic.raw_compiler_log[0])
+                             ? session->diagnostic.raw_compiler_log
+                             : session->program_stdout;
+    char tail_lines[3][160];
+    int  tail_count = 0;
+
+    if (src_stream && src_stream[0] != '\0') {
+        const char *p = src_stream;
+        while (*p) {
+            const char *nl = strchr(p, '\n');
+            size_t len = nl ? (size_t)(nl - p) : strlen(p);
+            if (len > 0) {
+                if (tail_count < 3) {
+                    size_t cpy = (len < 155) ? len : 155;
+                    memcpy(tail_lines[tail_count], p, cpy);
+                    tail_lines[tail_count][cpy] = '\0';
+                    tail_count++;
+                } else {
+                    memmove(tail_lines[0], tail_lines[1], sizeof(tail_lines[0]));
+                    memmove(tail_lines[1], tail_lines[2], sizeof(tail_lines[0]));
+                    size_t cpy = (len < 155) ? len : 155;
+                    memcpy(tail_lines[2], p, cpy);
+                    tail_lines[2][cpy] = '\0';
+                }
+            }
+            if (!nl) break;
+            p = nl + 1;
+        }
+    }
+
+    float card_h = has_error ? 52.0f : 36.0f;
+    if (tail_count > 0) {
+        card_h += 8.0f + (float)tail_count * 18.0f;
+    }
+
+    float left_margin  = 210.0f; /* Leaves room for bottom-left Camera Pill */
+    float right_margin = ui->config.show_blob ? 96.0f : 18.0f; /* Leaves room for Blob */
+    float card_w       = fmaxf(260.0f, canvas_bounds.width - left_margin - right_margin);
+    float bottom_y     = canvas_bounds.y + canvas_bounds.height - ui->terminal_anim_h - card_h - 12.0f;
+
+    Rectangle stage_card = {
+        floorf(canvas_bounds.x + left_margin),
+        floorf(bottom_y),
+        floorf(card_w),
+        floorf(card_h)
+    };
+
+    Color border_c = has_error ? pal->accent_error :
+                     (session->state == STATE_FINISHED ? pal->accent_primary : pal->accent_secondary);
+
+    DrawRectangleRounded(stage_card, 0.14f, 6, Fade(pal->bg_panel, 0.90f));
+    DrawRectangleRoundedLinesEx(stage_card, 0.14f, 6, 1.4f, border_c);
+
+    BeginScissorMode((int)stage_card.x + 8, (int)stage_card.y + 4, (int)stage_card.width - 16, (int)stage_card.height - 8);
+
+    float cy = stage_card.y + 8.0f;
+    char hdr_buf[256];
+    if (has_error) {
+        snprintf(hdr_buf, sizeof(hdr_buf), "⚠ %s", session->diagnostic.pedagogical_title);
+        DrawTextEx(ui_font, hdr_buf, (Vector2){ floorf(stage_card.x + 12.0f), floorf(cy) }, 15.0f, 1.0f, pal->accent_error);
+        cy += 19.0f;
+        DrawTextEx(sm_font, session->diagnostic.pedagogical_explanation,
+                   (Vector2){ floorf(stage_card.x + 12.0f), floorf(cy) }, 13.0f, 1.0f, pal->text_primary);
+        cy += 18.0f;
+    } else if (session->state == STATE_FINISHED) {
+        snprintf(hdr_buf, sizeof(hdr_buf), "✓ [CONCLUÍDO] %d nós na Heap  •  Pressione → ou Espaço para reiniciar", snap->node_count);
+        DrawTextEx(ui_font, hdr_buf, (Vector2){ floorf(stage_card.x + 12.0f), floorf(cy) }, 15.0f, 1.0f, pal->accent_primary);
+        cy += 22.0f;
+    } else {
+        snprintf(hdr_buf, sizeof(hdr_buf), "▶ Linha %d  •  %s()  •  %d nós na Heap  (Passo %d/%d)",
+                 snap->current_executing_line,
+                 snap->current_func[0] ? snap->current_func : "main",
+                 snap->node_count,
+                 (session->history_cursor >= 0) ? (session->history_cursor + 1) : 1,
+                 (session->history_count > 0) ? session->history_count : 1);
+        DrawTextEx(ui_font, hdr_buf, (Vector2){ floorf(stage_card.x + 12.0f), floorf(cy) }, 15.0f, 1.0f, pal->accent_warning);
+        cy += 22.0f;
+    }
+
+    if (tail_count > 0) {
+        DrawLineEx((Vector2){ stage_card.x + 10.0f, cy - 2.0f },
+                   (Vector2){ stage_card.x + stage_card.width - 10.0f, cy - 2.0f },
+                   1.0f, pal->border);
+        cy += 2.0f;
+        for (int l = 0; l < tail_count; l++) {
+            char out_line[180];
+            snprintf(out_line, sizeof(out_line), "%s %.155s",
+                     (session->diagnostic.error_type == ERR_COMPILE) ? "gcc>" : "stdout>",
+                     tail_lines[l]);
+            DrawTextEx(
+                sm_font,
+                out_line,
+                (Vector2){ floorf(stage_card.x + 12.0f), floorf(cy) },
+                13.0f,
+                1.0f,
+                has_error ? pal->accent_error : pal->accent_primary
+            );
+            cy += 17.0f;
+        }
+    }
+
+    EndScissorMode();
+}
+
+/* ============================================================================
+ * 9. MAIN INTERACTIVE MEMORY CANVAS RENDERER (DYNAMIC THEME + FULL HEIGHT)
  * ============================================================================ */
 
 void layout_render_canvas(
@@ -1462,11 +1619,15 @@ void layout_render_canvas(
             };
             float scene_w = fmaxf(260.0f, bmax.x - bmin.x + 140.0f);
             float scene_h = fmaxf(220.0f, bmax.y - bmin.y + 140.0f);
-            float zx = (canvas_bounds.width  * 0.80f) / scene_w;
-            float zy = (canvas_bounds.height * 0.76f) / scene_h;
+            float fit_w   = cfg->presentation_mode ? 0.88f : 0.80f;
+            float fit_h   = cfg->presentation_mode ? 0.82f : 0.76f;
+            float zx = (canvas_bounds.width  * fit_w) / scene_w;
+            float zy = (canvas_bounds.height * fit_h) / scene_h;
             float desired_zoom = fminf(zx, zy);
-            if (desired_zoom < 0.42f) desired_zoom = 0.42f;
-            if (desired_zoom > 1.12f) desired_zoom = 1.12f;
+            float min_z = cfg->presentation_mode ? 0.50f : 0.42f;
+            float max_z = cfg->presentation_mode ? 1.38f : 1.12f;
+            if (desired_zoom < min_z) desired_zoom = min_z;
+            if (desired_zoom > max_z) desired_zoom = max_z;
 
             float cam_lerp = avora_exp_decay(8.5f, dt, cfg->reduce_animations);
             ui->camera.target = Vector2Lerp(ui->camera.target, desired_target, cam_lerp);
@@ -1566,7 +1727,7 @@ void layout_render_canvas(
         } else if (n->left_state == EDGE_GARBAGE_PTR || n->left_state == EDGE_DANGLING) {
             draw_garbage_or_dangling_hazard(
                 n->current_pos, n->left_addr, true,
-                (n->left_state == EDGE_DANGLING), is_fatal_garbage, ui->pulse_timer, font
+                (n->left_state == EDGE_DANGLING), is_fatal_garbage, ui->pulse_timer, font, pal
             );
         }
 
@@ -1584,14 +1745,15 @@ void layout_render_canvas(
         } else if (n->right_state == EDGE_GARBAGE_PTR || n->right_state == EDGE_DANGLING) {
             draw_garbage_or_dangling_hazard(
                 n->current_pos, n->right_addr, false,
-                (n->right_state == EDGE_DANGLING), is_fatal_garbage, ui->pulse_timer, font
+                (n->right_state == EDGE_DANGLING), is_fatal_garbage, ui->pulse_timer, font, pal
             );
         }
     }
 
     /* PASS 2: Draw Tree & Linked-List Nodes */
     Color amber_focus = pal->accent_warning;
-    float node_val_fs = cfg->presentation_mode ? 20.0f : 18.0f;
+    float node_r      = cfg->presentation_mode ? 30.0f : NODE_RADIUS;
+    float node_val_fs = cfg->presentation_mode ? 22.0f : 18.0f;
 
     for (int i = 0; i < snap->node_count; i++) {
         const VisualNode *n = &snap->nodes[i];
@@ -1599,22 +1761,22 @@ void layout_render_canvas(
 
         /* Soft outer glow halo on focused or mutated node */
         if (n->is_active_focus || n->highlight_timer > 0.01f) {
-            float halo_r = NODE_RADIUS + 9.0f + 2.0f * sinf(ui->pulse_timer * 1.4f);
+            float halo_r = node_r + 9.0f + 2.0f * sinf(ui->pulse_timer * 1.4f);
             DrawCircleV(pos, halo_r, Fade(amber_focus, 0.16f));
-            DrawCircleV(pos, NODE_RADIUS + 4.5f, Fade(amber_focus, 0.24f));
+            DrawCircleV(pos, node_r + 4.5f, Fade(amber_focus, 0.24f));
         }
 
         Color body_col   = n->is_dangling ? (Color){ 88, 28, 135, 245 } : pal->bg_elevated;
         Color border_col = n->is_dangling ? (Color){ 232, 121, 249, 255 } :
                            ((n->is_active_focus || n->highlight_timer > 0.05f) ? amber_focus : pal->accent_secondary);
 
-        DrawCircleV(pos, NODE_RADIUS, body_col);
-        DrawRing(pos, NODE_RADIUS - 2.2f, NODE_RADIUS, 0.0f, 360.0f, 36, border_col);
+        DrawCircleV(pos, node_r, body_col);
+        DrawRing(pos, node_r - (cfg->presentation_mode ? 2.6f : 2.2f), node_r, 0.0f, 360.0f, 36, border_col);
 
         /* ~150ms Crisp Border Flash on newly allocated or mutated node */
         if (n->border_flash_timer > 0.0f && !cfg->reduce_animations) {
             float ft = fminf(1.0f, n->border_flash_timer / 0.16f);
-            DrawRing(pos, NODE_RADIUS - 1.0f, NODE_RADIUS + 3.0f, 0.0f, 360.0f, 36,
+            DrawRing(pos, node_r - 1.0f, node_r + 3.0f, 0.0f, 360.0f, 36,
                      Fade(pal->is_light ? pal->accent_primary : WHITE, ft * 0.90f));
         }
 
@@ -1630,7 +1792,7 @@ void layout_render_canvas(
             char addr_str[32];
             snprintf(addr_str, sizeof(addr_str), "0x%" PRIx64, (uint64_t)(n->addr & 0xFFFFFFU));
             Vector2 asz = MeasureTextEx(font, addr_str, 11.0f, 1.0f);
-            Rectangle addr_pill = { pos.x - asz.x * 0.5f - 4.0f, pos.y + NODE_RADIUS + 4.0f, asz.x + 8.0f, 15.0f };
+            Rectangle addr_pill = { pos.x - asz.x * 0.5f - 4.0f, pos.y + node_r + 4.0f, asz.x + 8.0f, 15.0f };
             DrawRectangleRounded(addr_pill, 0.3f, 4, Fade(pal->bg_panel, 0.92f));
             DrawTextEx(font, addr_str, (Vector2){ addr_pill.x + 4.0f, addr_pill.y + 2.0f },
                        11.0f, 1.0f, pal->text_secondary);
@@ -1638,22 +1800,23 @@ void layout_render_canvas(
 
         /* Floating Variable Name Pill Badges above the node */
         int badge_stack = 0;
+        float badge_fs = cfg->presentation_mode ? 15.0f : 13.0f;
         for (int v = 0; v < snap->local_var_count; v++) {
             if (snap->local_vars[v].addr == n->addr) {
                 const char *vname = snap->local_vars[v].name;
                 bool vchanged     = snap->local_vars[v].changed;
-                Vector2 bsz = MeasureTextEx(font, vname, 13.0f, 1.0f);
+                Vector2 bsz = MeasureTextEx(font, vname, badge_fs, 1.0f);
                 float bw = bsz.x + 14.0f;
-                float bh = 19.0f;
+                float bh = cfg->presentation_mode ? 21.0f : 19.0f;
                 float bx = pos.x - bw * 0.5f;
-                float by = pos.y - NODE_RADIUS - 25.0f - (float)badge_stack * 22.0f;
+                float by = pos.y - node_r - 26.0f - (float)badge_stack * 23.0f;
 
                 Rectangle pill = { bx, by, bw, bh };
                 Color p_border = vchanged ? amber_focus : pal->accent_secondary;
                 DrawRectangleRounded(pill, 0.45f, 6, Fade(pal->bg_panel, 0.95f));
                 DrawRectangleRoundedLinesEx(pill, 0.45f, 6, 1.3f, p_border);
                 DrawTextEx(font, vname, (Vector2){ bx + 7.0f, by + 3.0f },
-                           13.0f, 1.0f, vchanged ? amber_focus : pal->text_primary);
+                           badge_fs, 1.0f, vchanged ? amber_focus : pal->text_primary);
                 badge_stack++;
             }
         }
@@ -1706,6 +1869,9 @@ void layout_render_canvas(
 
     /* 5. Floating Observability HUD (Top-Left: Call Stack & Local Variables) */
     bool over_hud = draw_Observability_hud(session, ui, canvas_bounds, sm_font, input_blocked);
+
+    /* 5b. Presentation / Stage Mode Concatenated Overlay (Top-Right Controls + Bottom Stage Console) */
+    draw_presentation_stage_overlay(session, ui, canvas_bounds, ui_font, sm_font);
 
     /* 6. Floating Camera Pill (Bottom-Left: [ Auto | - 100% + ]) */
     bool over_pill = draw_floating_camera_pill(snap, ui, canvas_bounds, sm_font, input_blocked);

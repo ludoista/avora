@@ -646,9 +646,9 @@ static const char *PRESET_17_ARRAY_SORT_SEARCH =
     "    return 0;\n"
     "}\n";
 
-/* 18. AED I — Pilha (Stack): Validação de Parênteses Balanceados (LIFO) */
+/* Pilha (Stack): Validação de Parênteses Balanceados (LIFO) */
 static const char *PRESET_18_AED1_STACK =
-    "// 18. [AED I — Pilha / Stack] Validação de Parênteses & Chaves Balanceados (LIFO)\n"
+    "// [Pilha / Stack] Validação de Parênteses & Chaves Balanceados (LIFO)\n"
     "// Empilha (push) símbolos de abertura na Heap e desempilha (pop) ao encontrar fechamentos!\n"
     "\n"
     "void empilhar(struct ListNode** topo, int simbolo) {\n"
@@ -690,9 +690,9 @@ static const char *PRESET_18_AED1_STACK =
     "    return 0;\n"
     "}\n";
 
-/* 19. AED I — Fila Circular (Queue): Vetor Circular com Aritmética Modular */
+/* Fila Circular (Queue): Vetor Circular com Aritmética Modular */
 static const char *PRESET_19_AED1_CIRCULAR_QUEUE =
-    "// 19. [AED I — Fila Circular / Queue] Vetor com Aritmética Modular ((fim + 1) % MAX)\n"
+    "// [Fila Circular / Queue] Buffer Modular com Aritmética ((fim + 1) % MAX)\n"
     "// Observe no Canvas os ponteiros de índice 'ini' e 'fim' dando a volta circular no vetor!\n"
     "\n"
     "int main(void) {\n"
@@ -726,9 +726,9 @@ static const char *PRESET_19_AED1_CIRCULAR_QUEUE =
     "    return 0;\n"
     "}\n";
 
-/* 20. AED I — Lista Duplamente Encadeada com Nó Sentinela (Cabeça) */
+/* Lista Duplamente Encadeada com Nó Sentinela (Cabeça) */
 static const char *PRESET_20_AED1_DOUBLY_SENTINEL =
-    "// 20. [AED I — Lista Duplamente Encadeada] Nó Sentinela (Cabeça) & Remoção Segura\n"
+    "// [Lista Duplamente Encadeada] Nó Sentinela (Cabeça) & Remoção Bidirecional (prev / next)\n"
     "// O nó sentinela (-1) elimina casos especiais de ponteiro NULL no início da lista!\n"
     "\n"
     "void inserirOrdenado(struct ListNode* sentinela, int val) {\n"
@@ -768,9 +768,9 @@ static const char *PRESET_20_AED1_DOUBLY_SENTINEL =
     "    return 0;\n"
     "}\n";
 
-/* 21. AED I/II — QuickSort & Partição de Lomuto (Vetor + Pilha de Chamadas no HUD) */
+/* QuickSort & Partição de Lomuto (Vetor + Pilha de Chamadas no HUD) */
 static const char *PRESET_21_AED12_QUICKSORT =
-    "// 21. [AED I/II — QuickSort] Particionamento In-Place & Pilha de Chamadas no HUD\n"
+    "// [QuickSort & Partição de Lomuto] Ordenação In-Place & Pilha Recursiva no HUD\n"
     "// Observe como 'i', 'j', 'esq' e 'dir' particionam o vetor em torno do pivô a cada chamada!\n"
     "\n"
     "int particionar(int* vetor, int esq, int dir, int tam) {\n"
@@ -806,9 +806,9 @@ static const char *PRESET_21_AED12_QUICKSORT =
     "    return 0;\n"
     "}\n";
 
-/* 22. AED II — Binary Heap (Max-Heap) & HeapSort (Sift-Down + Árvore Espelhada) */
+/* Binary Heap (Max-Heap) & HeapSort (Sift-Down + Árvore Espelhada) */
 static const char *PRESET_22_AED2_BINARY_HEAP =
-    "// 22. [AED II — Binary Heap & HeapSort] Max-Heap com Sift-Down (Vetor + Árvore Binária)\n"
+    "// [Binary Heap & HeapSort] Max-Heap com Sift-Down (Vetor + Árvore Binária Implícita)\n"
     "// Visualiza simultaneamente o vetor do Heap (2*i+1, 2*i+2) e sua árvore binária completa!\n"
     "\n"
     "void siftDown(int* heap, int n, int pai) {\n"
@@ -847,9 +847,9 @@ static const char *PRESET_22_AED2_BINARY_HEAP =
     "    return 0;\n"
     "}\n";
 
-/* 23. AED II — Tabela Hash (Encadeamento Separado / Tratamento de Colisões) */
+/* Tabela Hash (Encadeamento Separado / Tratamento de Colisões) */
 static const char *PRESET_23_AED2_HASH_CHAINING =
-    "// 23. [AED II — Tabela Hash] Encadeamento Separado (Colisões h(k) = k % 3)\n"
+    "// [Tabela Hash] Encadeamento Separado (Tratamento de Colisões h(k) = k % 3)\n"
     "// Visualiza o vetor de contadores da tabela hash e as 3 listas encadeadas de colisão!\n"
     "\n"
     "void inserirNoBucket(struct ListNode** bucket, int chave) {\n"
@@ -884,108 +884,13 @@ void load_code_preset(DebuggerSession *session, int preset_index)
     if (preset_index < 0 || preset_index >= PRESET_COUNT) preset_index = 0;
     session->selected_preset = preset_index;
 
-    switch (preset_index) {
-        case 0:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_0_SCRATCHPAD);
-            snprintf(session->test_input, sizeof(session->test_input), "[10, 5, 15, 2, 7, null, 20]");
-            break;
-        case 1:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_1_LEETCODE_STD);
-            snprintf(session->test_input, sizeof(session->test_input), "[4,1,6,0,2,5,7,null,null,null,3,null,null,null,8]");
-            break;
-        case 2:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_2_LEETCODE_ARRAY_BST);
-            snprintf(session->test_input, sizeof(session->test_input), "[-10, -3, 0, 5, 9, 12, 18]");
-            break;
-        case 3:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_3_LEETCODE_PRE_IN_ARRAY);
-            snprintf(session->test_input, sizeof(session->test_input), "[3, 9, 20, 15, 7]");
-            break;
-        case 4:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_4_LEETCODE_MERGE_FOREST);
-            snprintf(session->test_input, sizeof(session->test_input), "[1, 3, 2, 5]");
-            break;
-        case 5:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_5_SAME_TREE_FOREST);
-            snprintf(session->test_input, sizeof(session->test_input), "[10, 5, 20, 3, 7, null, 30]");
-            break;
-        case 6:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_6_INVERT_AND_SUBTREE);
-            snprintf(session->test_input, sizeof(session->test_input), "[4, 2, 7, 1, 3, 6, 9]");
-            break;
-        case 7:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_2_SEARCHES);
-            snprintf(session->test_input, sizeof(session->test_input), "[50, 30, 70, 20, 40, 60, 80]");
-            break;
-        case 8:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_3_BST_INSERT_REMOVE);
-            snprintf(session->test_input, sizeof(session->test_input), "[50, 30, 70, 20, 40, 60, 80]");
-            break;
-        case 9:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_4_TRAVERSALS);
-            snprintf(session->test_input, sizeof(session->test_input), "[40, 20, 60, 10, 30, 50, 70]");
-            break;
-        case 10:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_5_AVL);
-            snprintf(session->test_input, sizeof(session->test_input), "10, 20, 30, 40, 50, 25");
-            break;
-        case 11:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_6_RED_BLACK);
-            snprintf(session->test_input, sizeof(session->test_input), "10, 20, 30, 40, 50, 60, 70");
-            break;
-        case 12:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_7_BTREE);
-            snprintf(session->test_input, sizeof(session->test_input), "20, 10, 30, 40, 50, 25, 60");
-            break;
-        case 13:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_9_BUG_GARBAGE);
-            snprintf(session->test_input, sizeof(session->test_input), "50, 30, 70");
-            break;
-        case 14:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_10_BUG_CYCLE);
-            snprintf(session->test_input, sizeof(session->test_input), "50, 30, 70");
-            break;
-        case 15:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_11_BUG_SEGFAULT);
-            snprintf(session->test_input, sizeof(session->test_input), "[20, 10, 30]");
-            break;
-        case 16:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_16_LINKED_LIST);
-            snprintf(session->test_input, sizeof(session->test_input), "[10, 20, 30, 40, 50]");
-            break;
-        case 17:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_17_ARRAY_SORT_SEARCH);
-            snprintf(session->test_input, sizeof(session->test_input), "[42, 12, 8, 95, 23, 4, 60]");
-            break;
-        case 18:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_18_AED1_STACK);
-            snprintf(session->test_input, sizeof(session->test_input), "[3, 2, 1, -1, -2, -3]");
-            break;
-        case 19:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_19_AED1_CIRCULAR_QUEUE);
-            snprintf(session->test_input, sizeof(session->test_input), "[10, 20, 30, 40, 50, 60]");
-            break;
-        case 20:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_20_AED1_DOUBLY_SENTINEL);
-            snprintf(session->test_input, sizeof(session->test_input), "[10, 20, 30, 40]");
-            break;
-        case 21:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_21_AED12_QUICKSORT);
-            snprintf(session->test_input, sizeof(session->test_input), "[38, 27, 43, 3, 9, 82, 10]");
-            break;
-        case 22:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_22_AED2_BINARY_HEAP);
-            snprintf(session->test_input, sizeof(session->test_input), "[12, 40, 25, 18, 90, 55, 10]");
-            break;
-        case 23:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_23_AED2_HASH_CHAINING);
-            snprintf(session->test_input, sizeof(session->test_input), "[15, 22, 8, 30, 19, 11, 45]");
-            break;
-        default:
-            snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_1_LEETCODE_STD);
-            snprintf(session->test_input, sizeof(session->test_input), "[4,1,6,0,2,5,7,null,null,null,3,null,null,null,8]");
-            break;
+    const char *code = get_builtin_preset_info(preset_index, NULL, NULL);
+    if (code) {
+        snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", code);
+    } else {
+        snprintf(session->code_buffer, sizeof(session->code_buffer), "%s", PRESET_0_SCRATCHPAD);
     }
+    snprintf(session->test_input, sizeof(session->test_input), "[10, 5, 15, 2, 7, null, 20]");
 }
 
 const char *get_builtin_preset_info(int index, const char **out_display_name, const char **out_filename)
@@ -995,30 +900,41 @@ const char *get_builtin_preset_info(int index, const char **out_display_name, co
         const char *filename;
         const char **code_ptr;
     } table[PRESET_COUNT] = {
-        { "0. Vazio (Scratchpad Livre)",                          "00_scratchpad_livre.c",                  &PRESET_0_SCRATCHPAD },
-        { "1. LeetCode 538: BST para Greater Tree (BUILD_TREE)",  "01_leetcode_538_bst_greater_tree.c",     &PRESET_1_LEETCODE_STD },
-        { "2. LeetCode 108: Vetor Ordenado -> BST (main c/ Vetor)", "02_leetcode_108_vetor_para_bst.c",     &PRESET_2_LEETCODE_ARRAY_BST },
-        { "3. LeetCode 105: Pré & Em-Ordem -> Árvore (2 Vetores)", "03_leetcode_105_pre_em_ordem.c",        &PRESET_3_LEETCODE_PRE_IN_ARRAY },
-        { "4. LeetCode 617: Mesclar Duas Árvores (main Floresta)", "04_leetcode_617_mesclar_floresta.c",    &PRESET_4_LEETCODE_MERGE_FOREST },
-        { "5. LeetCode 100: Same Tree — Comparar Floresta",       "05_leetcode_100_same_tree.c",            &PRESET_5_SAME_TREE_FOREST },
-        { "6. LeetCode 226+572: Inverter & Subtree (Floresta)",   "06_leetcode_226_572_inverter_subtree.c", &PRESET_6_INVERT_AND_SUBTREE },
-        { "7. Buscas: Binária (BST), DFS (Profundidade) & BFS",   "07_buscas_bst_dfs_bfs.c",                &PRESET_2_SEARCHES },
-        { "8. BST: Inserção & Remoção (3 Casos)",                 "08_bst_insercao_remocao.c",              &PRESET_3_BST_INSERT_REMOVE },
-        { "9. Travessias Clássicas (Pré, Em e Pós-Ordem)",        "09_travessias_pre_em_pos.c",             &PRESET_4_TRAVERSALS },
-        { "10. Árvore AVL (Balanceamento & Rotações)",            "10_arvore_avl_rotacoes.c",               &PRESET_5_AVL },
-        { "11. Árvore Rubro-Negra (Rotações & Flip de Cores)",    "11_arvore_rubro_negra.c",                &PRESET_6_RED_BLACK },
-        { "12. Árvore B / 2-3 (Cisão / Split & Mediana)",         "12_arvore_b_23_split.c",                 &PRESET_7_BTREE },
-        { "13. Armadilha 1: Ponteiro Sem NULL (Lixo)",            "13_armadilha_ponteiro_lixo.c",           &PRESET_9_BUG_GARBAGE },
-        { "14. Armadilha 2: Ciclo Estrutural (Rotação)",          "14_armadilha_ciclo_estrutural.c",        &PRESET_10_BUG_CYCLE },
-        { "15. Armadilha 3: Segfault (Desreferenciar NULL)",      "15_armadilha_segfault_null.c",           &PRESET_11_BUG_SEGFAULT },
-        { "16. Lista Encadeada: Inversão & Ponteiros (next/prev)", "16_lista_encadeada_inversao.c",         &PRESET_16_LINKED_LIST },
-        { "17. Vetores: Ordenação (Selection) & Busca Binária",   "17_vetores_ordenacao_busca.c",           &PRESET_17_ARRAY_SORT_SEARCH },
-        { "18. AED I — Pilha (Stack): Parênteses Balanceados",    "18_aed1_pilha_parenteses_lifo.c",        &PRESET_18_AED1_STACK },
-        { "19. AED I — Fila Circular (Queue): Aritmética Modular", "19_aed1_fila_circular_modular.c",       &PRESET_19_AED1_CIRCULAR_QUEUE },
-        { "20. AED I — Lista Dupla c/ Nó Sentinela (Cabeça)",     "20_aed1_lista_dupla_sentinela.c",        &PRESET_20_AED1_DOUBLY_SENTINEL },
-        { "21. AED I/II — QuickSort & Partição (Recursão + HUD)", "21_aed12_quicksort_recursao.c",          &PRESET_21_AED12_QUICKSORT },
-        { "22. AED II — Binary Heap (Max-Heap) & HeapSort",       "22_aed2_max_heap_heapsort.c",            &PRESET_22_AED2_BINARY_HEAP },
-        { "23. AED II — Tabela Hash (Encadeamento & Colisões)",   "23_aed2_tabela_hash_colisoes.c",         &PRESET_23_AED2_HASH_CHAINING }
+        /* 0: Scratchpad */
+        { "0. Vazio (Scratchpad Livre)",                            "00_scratchpad_livre.c",                  &PRESET_0_SCRATCHPAD },
+
+        /* 1..4: Estruturas Lineares (Listas Encadeadas, Pilha, Fila) */
+        { "1. Lista Encadeada: Inversão & Ponteiros (BUILD_LIST)",  "01_lista_encadeada_inversao.c",          &PRESET_16_LINKED_LIST },
+        { "2. Lista Duplamente Encadeada c/ Nó Sentinela",          "02_lista_dupla_sentinela.c",             &PRESET_20_AED1_DOUBLY_SENTINEL },
+        { "3. Pilha (Stack): Parênteses Balanceados (LIFO)",        "03_pilha_parenteses_lifo.c",             &PRESET_18_AED1_STACK },
+        { "4. Fila Circular (Queue): Buffer Modular (FIFO)",        "04_fila_circular_modular.c",             &PRESET_19_AED1_CIRCULAR_QUEUE },
+
+        /* 5..16: Árvores, LeetCodes de Árvores/Florestas & Balanceamento Avançado */
+        { "5. Árvores: Travessias Clássicas (Pré, Em e Pós-Ordem)", "05_travessias_pre_em_pos.c",             &PRESET_4_TRAVERSALS },
+        { "6. Árvores: Buscas BST, DFS (Profundidade) & BFS",       "06_buscas_bst_dfs_bfs.c",                &PRESET_2_SEARCHES },
+        { "7. BST Clássica: Inserção & Remoção (3 Casos)",          "07_bst_insercao_remocao.c",              &PRESET_3_BST_INSERT_REMOVE },
+        { "8. LeetCode 538: Convert BST to Greater Tree",           "08_leetcode_538_bst_greater_tree.c",     &PRESET_1_LEETCODE_STD },
+        { "9. LeetCode 108: Vetor Ordenado -> BST Balanceada",      "09_leetcode_108_vetor_para_bst.c",       &PRESET_2_LEETCODE_ARRAY_BST },
+        { "10. LeetCode 105: Pré & Em-Ordem -> Árvore (2 Vetores)", "10_leetcode_105_pre_em_ordem.c",         &PRESET_3_LEETCODE_PRE_IN_ARRAY },
+        { "11. LeetCode 617: Merge Two Binary Trees (Floresta)",    "11_leetcode_617_mesclar_floresta.c",     &PRESET_4_LEETCODE_MERGE_FOREST },
+        { "12. LeetCode 100: Same Tree — Comparar Floresta",        "12_leetcode_100_same_tree.c",            &PRESET_5_SAME_TREE_FOREST },
+        { "13. LeetCode 226+572: Invert Tree & Subtree (Floresta)", "13_leetcode_226_572_inverter_subtree.c", &PRESET_6_INVERT_AND_SUBTREE },
+        { "14. Árvore AVL: Fator de Balanceamento & Rotações",      "14_arvore_avl_rotacoes.c",               &PRESET_5_AVL },
+        { "15. Árvore Rubro-Negra: Rotações & Flip de Cores",       "15_arvore_rubro_negra.c",                &PRESET_6_RED_BLACK },
+        { "16. Árvore B / 2-3: Cisão (Split) & Mediana",            "16_arvore_b_23_split.c",                 &PRESET_7_BTREE },
+
+        /* 17..18: Buscas & Ordenação em Vetores */
+        { "17. Ordenação & Busca: Selection Sort + Busca Binária",  "17_selection_sort_busca_binaria.c",      &PRESET_17_ARRAY_SORT_SEARCH },
+        { "18. Ordenação Rápida: QuickSort & Partição de Lomuto",   "18_quicksort_particao_lomuto.c",         &PRESET_21_AED12_QUICKSORT },
+
+        /* 19..20: Estruturas Avançadas (Heap & Tabela Hash) */
+        { "19. Binary Heap (Max-Heap) & HeapSort (Sift-Down)",      "19_binary_heap_max_heapsort.c",          &PRESET_22_AED2_BINARY_HEAP },
+        { "20. Tabela Hash: Encadeamento Separado & Colisões",      "20_tabela_hash_colisoes.c",              &PRESET_23_AED2_HASH_CHAINING },
+
+        /* 21..23: Armadilhas Clássicas de Memória em C */
+        { "21. Armadilha 1: Ponteiro Sem NULL (Lixo de Memória)",   "21_armadilha_ponteiro_lixo.c",           &PRESET_9_BUG_GARBAGE },
+        { "22. Armadilha 2: Ciclo Estrutural (Rotação Incorreta)",  "22_armadilha_ciclo_estrutural.c",        &PRESET_10_BUG_CYCLE },
+        { "23. Armadilha 3: Segfault (Desreferenciar NULL)",        "23_armadilha_segfault_null.c",           &PRESET_11_BUG_SEGFAULT }
     };
 
     if (index < 0 || index >= PRESET_COUNT) return NULL;
@@ -1389,7 +1305,8 @@ static const char *INJECTED_HARNESS_PROLOGUE =
     "    while (qh < qt && qh < 256) {\n"
     "        struct TreeNode *n = q[qh++];\n"
     "        if (!__aed_is_valid_ptr(n) || __aed_is_freed_ptr(n) || !__aed_is_known_alloc(n)) continue;\n"
-    "        struct TreeNode *ch[2] = { n->left, n->right };\n"
+    "        int is_list = __aed_is_list_alloc(n);\n"
+    "        struct TreeNode *ch[2] = { is_list ? NULL : n->left, n->right };\n"
     "        for (int c = 0; c < 2; c++) {\n"
     "            struct TreeNode *nx = ch[c];\n"
     "            if (!nx) continue;\n"
@@ -1461,13 +1378,14 @@ static const char *INJECTED_HARNESS_PROLOGUE =
     "        char flags[128];\n"
     "        flags[0] = '\\0';\n"
     "\n"
-    "        /* Inspect Left Pointer */\n"
+    "        int is_list = __aed_is_list_alloc(curr);\n"
+    "        /* Inspect Left / Prev Pointer */\n"
     "        if (L != NULL) {\n"
     "            if (!__aed_is_valid_ptr(L)) {\n"
     "                strcat(flags, \"GARBAGE_LEFT|\");\n"
     "            } else if (__aed_is_freed_ptr(L)) {\n"
     "                strcat(flags, \"DANGLING_LEFT|\");\n"
-    "            } else if (__aed_can_reach(L, curr)) {\n"
+    "            } else if ((is_list && L == curr) || (!is_list && __aed_can_reach(L, curr))) {\n"
     "                strcat(flags, \"CYCLE_LEFT|\");\n"
     "            } else {\n"
     "                int seen = 0;\n"
@@ -2746,11 +2664,12 @@ static void refresh_runtime_snapshot(DebuggerSession *session, int line, const c
         }
     }
 
-    /* 3. Discover Multi-Tree Forest Roots (all nodes with in-degree 0 along valid tree edges) */
+    /* 3. Discover Multi-Tree Forest Roots (all nodes with in-degree 0 along forward tree/list edges) */
     bool has_parent[MAX_TREE_NODES] = { false };
     for (int i = 0; i < new_snap.node_count; i++) {
         const VisualNode *n = &new_snap.nodes[i];
-        if (n->left_state == EDGE_OK && n->left_addr != 0) {
+        /* For doubly-linked list nodes, left_addr is `prev` (backward link), not a child edge! */
+        if (!n->is_list_node && n->left_state == EDGE_OK && n->left_addr != 0) {
             for (int j = 0; j < new_snap.node_count; j++) {
                 if (new_snap.nodes[j].addr == n->left_addr) has_parent[j] = true;
             }
@@ -2762,13 +2681,14 @@ static void refresh_runtime_snapshot(DebuggerSession *session, int line, const c
         }
     }
 
-    /* If active_root_addr was rotated down, promote its parent to active_root_addr */
+    /* If active_root_addr was rotated down or prepended in a list, promote its parent to active_root_addr */
     for (int hop = 0; hop < new_snap.node_count; hop++) {
         bool promoted = false;
         for (int i = 0; i < new_snap.node_count; i++) {
             const VisualNode *n = &new_snap.nodes[i];
-            if ((n->left_state == EDGE_OK && n->left_addr == new_snap.active_root_addr) ||
-                (n->right_state == EDGE_OK && n->right_addr == new_snap.active_root_addr)) {
+            bool is_left_parent  = (!n->is_list_node && n->left_state == EDGE_OK && n->left_addr == new_snap.active_root_addr);
+            bool is_right_parent = (n->right_state == EDGE_OK && n->right_addr == new_snap.active_root_addr);
+            if (is_left_parent || is_right_parent) {
                 new_snap.active_root_addr = n->addr;
                 promoted = true;
                 break;

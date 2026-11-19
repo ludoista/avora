@@ -2,7 +2,7 @@
   <img src="logo.jpg" alt="AVORA Logo" width="180" style="border-radius: 20px;" />
 </p>
 
-<h1 align="center">AVORA v3.2.0</h1>
+<h1 align="center">AVORA v3.3.0</h1>
 <h3 align="center">Analisador Visual de Operações e Rastreamento de Árvores</h3>
 
 <p align="center">
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Vers%C3%A3o-3.2.0-10B981?style=flat-square" alt="v3.2.0" />
+  <img src="https://img.shields.io/badge/Vers%C3%A3o-3.3.0-10B981?style=flat-square" alt="v3.3.0" />
   <img src="https://img.shields.io/badge/Linguagem-C11%20(POSIX)-38BDF8?style=flat-square" alt="C11" />
   <img src="https://img.shields.io/badge/Plataforma-Linux%20x86__64-1F2437?style=flat-square" alt="Linux" />
   <img src="https://img.shields.io/badge/Backend-GDB%2FMI%20%2B%20ASan-A78BFA?style=flat-square" alt="GDB/MI + ASan" />
@@ -100,51 +100,49 @@ make
 
 ---
 
-## ✨ Principais Funcionalidades (v3.2.0)
+## ✨ Principais Funcionalidades (v3.3.0)
 
-### 1. Identidade Visual Configurável (7 Temas Estilo Monkeytype), Física Exponencial & Áudio Procedural
-- **7 Temas em Tempo Real (`Ctrl+,`):** *Midnight Slate*, *Serika Dark*, *Catppuccin Mocha*, *Nord*, *Gruvbox Dark*, *Dracula* e *Serika Light (Paper)* (alto contraste para projetores de sala de aula), aplicados instantaneamente no Editor, Canvas 2D, Nós, HUD, Terminal e Blob.
-- **Fluidez Independente de FPS & Feedback Tátil "Indie Crisp":** Todas as animações (Pan/Zoom/Auto-Foco da câmera, transição de nós, scroll do editor/terminal e mascote Blob) usam decaimento exponencial contínuo (`1.0f - expf(-speed * dt)`), 100% interrompível, acompanhadas de resposta tátil nos botões, flash de borda (`~150ms`) em nós modificados e micro-shake em erros.
+### 1. Identidade Visual Configurável (7 Temas Estilo Monkeytype), Modo Apresentação / Palco & Áudio Procedural
+- **7 Temas em Tempo Real (`Ctrl+,`):** *Midnight Slate*, *Serika Dark*, *Catppuccin Mocha*, *Nord*, *Gruvbox Dark*, *Dracula* e *Serika Light (Paper)* (alto contraste para projetores), aplicados instantaneamente no Editor, Canvas 2D, Nós, `[ ? não inic. ]`, HUD, Terminal e Blob.
+- **Modo Apresentação / Palco (`Ctrl+Shift+P`):** Projetado para aulas e apresentações com **controle via setas do teclado ou passadores de slide Bluetooth** (`→`/`PageDown`/`Espaço` para avançar passo, `←`/`PageUp` para voltar no *Time-Travel*, `↑`/`↓` para rolar o código, `[`/`]` para trocar de template), nós e código ampliados e **card concatenado de Diagnóstico + `stdout`** diretamente sobre o Canvas.
+- **Fluidez Independente de FPS & Feedback Tátil "Indie Crisp":** Todas as animações usam decaimento exponencial contínuo (`1.0f - expf(-speed * dt)`), 100% interrompível, com resposta tátil nos botões, flash de borda (`~150ms`) em nós modificados e micro-shake em erros.
 - **Áudio Procedural em Memória (`src/audio.c`):** Síntese leve de senoides em memória (sem arquivos `.wav` externos) para *Tick* de passo, *Pop* harmônico ao alocar/mutar nós, *Chime* de compilação e *Thud* de erro, 100% *fail-safe* e com botão rápido de **Mudo (`♪ SFX`)** na barra superior.
-- **Sem Poluição Visual (*Progressive Disclosure*):** No modo **Edição**, o rodapé exibe apenas `[ ▶ Compilar & Iniciar ]`; no modo **Execução**, revela `[ ■ Parar ]`, `[ ⏮ Voltar ]` (`Shift+F10`), `[ ⏭ Passo ]` (`F10`), `[ ▶ Continuar ]` (`F9`), `[ ⏯ Auto-Play ]` (`F8`) e o slider exponencial de `Velocidade` (`0.05x` a `100x`).
 
 ### 2. Time-Travel Visual (`Shift+F10`), Breakpoints no Gutter (`F9`), HUD & Terminal com `stdin` Opcional
 - **Voltar Passo (*Visual Time-Travel*):** Ring buffer em memória com os últimos **128 snapshots** completos (`TreeSnapshot` + linha ativa + Call Stack + variáveis locais), permitindo retroceder e re-avançar a execução instantaneamente sem depender de `reverse-step` do GDB.
 - **Breakpoints Clicáveis no Gutter:** Clique no número de qualquer linha no editor para ativar/desativar breakpoints (`●` vermelho) e use `[ ▶ Continuar ]` (`F9`) para saltar diretamente até o ponto de parada.
 - **HUD Flutuante (Canto Superior Esquerdo):** Exibe a **Pilha de Chamadas (`-stack-list-frames`)** e todas as **variáveis locais** do frame atual (ponteiros `0x...`/`NULL` e primitivos `int`, `bool`, `char`, `float`), destacando em âmbar (`●`) toda variável alterada no passo.
-- **Terminal Retrátil Unificado (`stdout` + `stdin` Opcional):**
-  - **Diagnóstico & Compilador (`GCC` / `ASan`):** Explicação didática + saída literal multilinha do compilador.
-  - **Terminal (`stdout` e `stdin` opcional):** Captura em tempo real qualquer `printf`/`puts`. Ao ativar `Habilitar Entrada Padrão (stdin)` nas Configurações (ou em **1 clique** através da sugestão inteligente do **Blob** quando `scanf`/`fgets`/`getchar` é detectado), divide o terminal em **Entrada (`stdin`)** e **Saída (`stdout`)** com proteção de `EOF` imediato para nunca travar o Watchdog POSIX.
+- **Terminal Retrátil Unificado (`stdout` + `stdin` Opcional):** Captura em tempo real qualquer `printf`/`puts`, com divisão opcional para **Entrada (`stdin`)** e detecção inteligente pelo **Blob** quando `scanf`/`fgets`/`getchar` é utilizado.
 
-### 3. 24 Templates Embutidos (AED I & AED II) + Templates Dinâmicos por Pasta (Modo Sala de Aula)
-Além do suporte a **pastas dinâmicas de templates** (`~/.config/avora/templates` — ideal para professores prepararem listas de exercícios por aula), o AVORA traz **24 exemplos embutidos e comentados**:
+### 3. Trilha Sequencial de 24 Templates Embutidos + Templates Personalizados por Pasta
+Além do suporte a **pastas dinâmicas de templates** (`~/.config/avora/templates`), o AVORA traz **24 exemplos embutidos** organizados em ordem progressiva de complexidade:
 
 | # | Categoria | Template | Destaque Didático |
 | :-: | :--- | :--- | :--- |
-| **0** | Scratchpad | **Vazio (Scratchpad Livre)** | Esqueleto limpo para criar sua própria árvore ou algoritmo C |
-| **1** | LeetCode (BST) | **538. Convert BST to Greater Tree** | Travessia em-ordem reversa com `BUILD_TREE` |
-| **2** | LeetCode (Vetor) | **108. Vetor Ordenado $\rightarrow$ BST** | `main()` com vetor `int nums[]`, divisão e conquista e `malloc()` |
-| **3** | LeetCode (2 Vetores)| **105. Pré & Em-Ordem $\rightarrow$ Árvore** | Reconstrução de árvore a partir de 2 vetores (`preorder` e `inorder`) |
-| **4** | LeetCode (Floresta) | **617. Merge Two Binary Trees** | Duas árvores (`t1` e `t2`) lado a lado sendo mescladas em tempo real |
-| **5** | LeetCode (Floresta) | **100. Same Tree** | Comparação estrutural simultânea de duas árvores no canvas |
-| **6** | LeetCode (Floresta) | **226. Invert Tree + 572. Subtree** | Três árvores na floresta: inversão espelhada e verificação de subárvore |
-| **7** | Buscas | **Binária (BST), DFS & BFS** | Comparação prática entre busca em BST, profundidade e largura |
-| **8** | BST Clássica | **Inserção & Remoção (3 Casos)** | Remoção de nó folha, 1 filho e 2 filhos (sucessor em-ordem) |
-| **9** | Travessias | **Pré-Ordem, Em-Ordem e Pós-Ordem** | Rastreamento visual da pilha de chamadas recursivas |
-| **10** | Balanceamento | **Árvore AVL** | Fator de balanceamento e rotações simples/duplas (`LL`, `RR`, `LR`, `RL`) |
-| **11** | Balanceamento | **Árvore Rubro-Negra (Red-Black)** | Rotações à esquerda/direita e *flip* de cores |
-| **12** | Multi-Chaves | **Árvore B / 2-3 (Cisão / Split)** | Simulação visual de cisão (*split*) e promoção de chave mediana |
-| **13** | Armadilha 1 | **Ponteiro Sem `NULL` (Lixo)** | Demonstra o que ocorre ao esquecer `left = right = NULL` após `malloc()` |
-| **14** | Armadilha 2 | **Ciclo Estrutural (Rotação)** | Demonstra a detecção imediata de laço fechado (`pai <-> filho`) |
-| **15** | Armadilha 3 | **Segfault (Desreferenciar `NULL`)** | Demonstra o acesso inválido `raiz->val` sem verificar `if (raiz == NULL)` |
-| **16** | Lista Encadeada | **Inversão & Ponteiros (`next`/`prev`)** | `struct ListNode` + `BUILD_LIST("[10, 20, 30, 40, 50]")` com layout linear |
-| **17** | Vetores & Busca | **Ordenação (Selection) & Busca Binária** | Células de vetor no Canvas com selos de índice (`i`, `j`, `esq`, `meio`, `dir`) + `printf` |
-| **18** | AED I (Pilha) | **Pilha (Stack): Expressões & Parênteses** | `push`/`pop` dinâmico em `struct ListNode` + vetor de expressão |
-| **19** | AED I (Fila) | **Fila Circular (Queue): Buffer Modular** | `enqueue`/`dequeue` com índices `head`, `tail`, `count` e aritmética modular |
-| **20** | AED I (Lista Dupla) | **Lista Duplamente Encadeada + Sentinela** | Inserção e remoção com ponteiros `prev` e `next` |
-| **21** | AED II (Ordenação) | **QuickSort & Partição de Lomuto** | Rastreamento visual de `pivo`, `i`, `j`, `low`, `high` e pilha recursiva |
-| **22** | AED II (Heap) | **Binary Heap (Max-Heap) & HeapSort** | `sift_down` in-place no vetor + projeção da árvore binária implícita |
-| **23** | AED II (Hashing) | **Tabela Hash (Encadeamento Separado)** | Tratamento de colisões em listas encadeadas + vetor de estado dos buckets |
+| **0** | Scratchpad | **Vazio (Scratchpad Livre)** | Esqueleto limpo para criar sua própria árvore, lista ou algoritmo C |
+| **1** | Estruturas Lineares | **Lista Encadeada: Inversão & Ponteiros** | `struct ListNode` + `BUILD_LIST("[10, 20, 30, 40, 50]")` com layout linear |
+| **2** | Estruturas Lineares | **Lista Duplamente Encadeada c/ Nó Sentinela** | Inserção ordenada e remoção segura com ponteiros bidirecionais `prev` e `next` |
+| **3** | Estruturas Lineares | **Pilha (Stack): Parênteses Balanceados (LIFO)** | `push`/`pop` dinâmico na Heap + vetor de expressão |
+| **4** | Estruturas Lineares | **Fila Circular (Queue): Buffer Modular (FIFO)** | `enqueue`/`dequeue` com índices `ini`, `fim`, `qtd` e aritmética `(fim + 1) % cap` |
+| **5** | Árvores Binárias | **Travessias Clássicas (Pré, Em e Pós-Ordem)** | Rastreamento visual da pilha de chamadas recursivas |
+| **6** | Árvores Binárias | **Buscas: BST, DFS (Profundidade) & BFS** | Comparação prática entre busca em BST, profundidade e largura |
+| **7** | Árvores Binárias | **BST Clássica: Inserção & Remoção (3 Casos)** | Remoção de nó folha, 1 filho e 2 filhos (sucessor em-ordem) |
+| **8** | LeetCode (BST) | **538. Convert BST to Greater Tree** | Travessia em-ordem reversa com `BUILD_TREE` |
+| **9** | LeetCode (Vetor) | **108. Vetor Ordenado $\rightarrow$ BST Balanceada** | `main()` com vetor `int nums[]`, divisão e conquista e `malloc()` |
+| **10** | LeetCode (2 Vetores)| **105. Pré & Em-Ordem $\rightarrow$ Árvore** | Reconstrução de árvore a partir de 2 vetores (`preorder` e `inorder`) |
+| **11** | LeetCode (Floresta) | **617. Merge Two Binary Trees** | Duas árvores (`t1` e `t2`) lado a lado sendo mescladas em tempo real |
+| **12** | LeetCode (Floresta) | **100. Same Tree — Comparar Floresta** | Comparação estrutural simultânea de duas árvores no canvas |
+| **13** | LeetCode (Floresta) | **226. Invert Tree + 572. Subtree** | Três árvores na floresta: inversão espelhada e verificação de subárvore |
+| **14** | Balanceamento | **Árvore AVL: Fator de Balanceamento & Rotações** | Rotações simples e duplas (`LL`, `RR`, `LR`, `RL`) |
+| **15** | Balanceamento | **Árvore Rubro-Negra: Rotações & Flip de Cores** | Rotações à esquerda/direita e *flip* de cores |
+| **16** | Multi-Chaves | **Árvore B / 2-3: Cisão (Split) & Mediana** | Simulação visual de cisão (*split*) e promoção de chave mediana |
+| **17** | Ordenação & Busca | **Selection Sort + Busca Binária** | Células de vetor no Canvas com selos de índice (`i`, `j`, `esq`, `meio`, `dir`) |
+| **18** | Ordenação Rápida | **QuickSort & Partição de Lomuto** | Rastreamento visual de `pivo`, `i`, `j`, `esq`, `dir` e pilha recursiva |
+| **19** | Estruturas Avançadas| **Binary Heap (Max-Heap) & HeapSort** | `siftDown` in-place no vetor + projeção da árvore binária implícita |
+| **20** | Estruturas Avançadas| **Tabela Hash: Encadeamento Separado & Colisões**| Tratamento de colisões em listas encadeadas + vetor de estado dos buckets |
+| **21** | Armadilha 1 | **Ponteiro Sem `NULL` (Lixo de Memória)** | Demonstra o que ocorre ao esquecer `left = right = NULL` após `malloc()` |
+| **22** | Armadilha 2 | **Ciclo Estrutural (Rotação Incorreta)** | Demonstra a detecção imediata de laço fechado (`pai <-> filho`) |
+| **23** | Armadilha 3 | **Segfault (Desreferenciar `NULL`)** | Demonstra o acesso inválido `raiz->val` sem verificar `if (raiz == NULL)` |
 
 ### 4. Mascote Pedagógico **Blob**, Internacionalização (`PT-BR` / `EN-US` / `ES`) & Diagnóstico do Sistema
 - **Árvore de Decisão Interativa do Blob:** Ajuda contextual em modo exploratório, diagnóstico guiado em modo de erro e detecção proativa de leitura de `stdin`.
